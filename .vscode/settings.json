@@ -1,0 +1,21 @@
+{
+  "C_Cpp.errorSquiggles": "disabled",
+  "files.associations": {
+    "stdexcept": "cpp",
+    "string": "cpp",
+    "regex": "cpp",
+    "sstream": "cpp",
+    "strstream": "cpp",
+    "__hash_table": "cpp",
+    "__split_buffer": "cpp",
+    "__tree": "cpp",
+    "deque": "cpp",
+    "forward_list": "cpp",
+    "ios": "cpp",
+    "list": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "unordered_map": "cpp",
+    "vector": "cpp"
+  }
+}
