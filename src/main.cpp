@@ -37,6 +37,10 @@ IColorType rgb_darken(int r, int g, int b, float factor__)
     return rgb(r * factor, g * factor, b * factor);
 }
 
+const IColorType COLOR_BLACK = rgb(0, 0, 0);
+const IColorType COLOR_WHITE = rgb(255, 255, 255);
+const IColorType COLOR_OSU = rgb(0xF1, 0x60, 0xA1);
+
 int randint(int min, int max)
 {
     return min + (rand() % (max - min + 1));
@@ -153,7 +157,7 @@ public:
             Module.ctx.clearRect(0, 0, Module.canvas.width, Module.canvas.height););
     }
 
-    void drawIntroText(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawIntroText(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '26pt Arial';
@@ -164,7 +168,7 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
-    void drawOsuLogoText(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawOsuLogoText(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '26pt Arial';
@@ -175,7 +179,7 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
-    void drawOsuLogoTextSmaller(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawOsuLogoTextSmaller(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '13pt Arial';
@@ -186,7 +190,7 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
-    void drawButtonName(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawButtonName(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '13pt Arial';
@@ -197,7 +201,7 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
-    void drawText(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawText(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '13pt Arial';
@@ -208,7 +212,7 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
-    void drawTextTopLeft(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawTextTopLeft(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '13pt Arial';
@@ -218,7 +222,7 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
-    void drawTextTopLeftSmaller(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    void drawTextTopLeftSmaller(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
             Module.ctx.font = '10pt Arial';
@@ -903,7 +907,7 @@ public:
             {
                 currentKeyframe = IntroSceneKeyframe::Wel;
                 api->clear();
-                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Wel", rgb(255, 255, 255));
+                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Wel", COLOR_WHITE);
             }
             return;
         }
@@ -913,7 +917,7 @@ public:
             {
                 currentKeyframe = IntroSceneKeyframe::Come;
                 api->clear();
-                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome", rgb(255, 255, 255));
+                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome", COLOR_WHITE);
             }
             return;
         }
@@ -923,7 +927,7 @@ public:
             {
                 currentKeyframe = IntroSceneKeyframe::To;
                 api->clear();
-                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome to", rgb(255, 255, 255));
+                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome to", COLOR_WHITE);
             }
             return;
         }
@@ -933,14 +937,14 @@ public:
             {
                 currentKeyframe = IntroSceneKeyframe::OSU;
                 api->clear();
-                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome to OSU!", rgb(255, 255, 255));
+                api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome to OSU!", COLOR_WHITE);
             }
             return;
         }
         if (deltaTime >= 860 && deltaTime < __INTRO_SCENE_END_MS_)
         {
             api->clear();
-            api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome to OSU!", rgb(255, 255, 255));
+            api->drawIntroText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Welcome to OSU!", COLOR_WHITE);
             int enableStep__ = (deltaTime - 860) / 40;
             int enableStep = enableStep__ > 3 ? 3 : enableStep__;
             for (int i = 0; i < enableStep; i++)
@@ -994,10 +998,10 @@ public:
         {
             if (buttons[i])
             {
-                api->drawRect(drawX, CANVAS_HEIGHT - 35, 30, 30, rgb(0, 0, 0));
-                api->drawText(drawX + 15, CANVAS_HEIGHT - 20, buttonKey[i], rgb(255, 255, 255));
+                api->drawRect(drawX, CANVAS_HEIGHT - 35, 30, 30, COLOR_BLACK);
+                api->drawText(drawX + 15, CANVAS_HEIGHT - 20, buttonKey[i], COLOR_WHITE);
                 // TODO: implement on arduino
-                api->drawTextTopLeft(drawX + 33, CANVAS_HEIGHT - 20, names[i], rgb(255, 255, 255));
+                api->drawTextTopLeft(drawX + 33, CANVAS_HEIGHT - 20, names[i], COLOR_WHITE);
             }
             drawX += btnWidth + 5;
         }
@@ -1091,12 +1095,12 @@ public:
         api->drawButtonName(baseX + playButtonWidthHandler.current() + downloadButtonWidthHandler.current() + optionsButtonWidthHandler.current() / 2, textY, "OPT", darkenText);
 
         // OSU LOGO ANIMATION
-        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, logoMovSz, rgb(255, 255, 255));
-        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, logoInnerSz, rgb(0xF1, 0x60, 0xA1));
+        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, logoMovSz, COLOR_WHITE);
+        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, logoInnerSz, COLOR_OSU);
         if (logoMovSz >= (CANVAS_WIDTH / 8 + 80) / 2)
-            api->drawOsuLogoText(logoMovX, CANVAS_HEIGHT / 2, "OSU!", rgb(255, 255, 255));
+            api->drawOsuLogoText(logoMovX, CANVAS_HEIGHT / 2, "OSU!", COLOR_WHITE);
         else
-            api->drawOsuLogoTextSmaller(logoMovX, CANVAS_HEIGHT / 2, "OSU!", rgb(255, 255, 255));
+            api->drawOsuLogoTextSmaller(logoMovX, CANVAS_HEIGHT / 2, "OSU!", COLOR_WHITE);
 
         if (submenuOpenAnimationType == TitleSceneKeyframe::SubmenuOpen)
         {
@@ -1262,12 +1266,12 @@ public:
     void render()
     {
         api->clear();
-        api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Loading...", rgb(255, 255, 255));
-        api->drawRect(10, CANVAS_HEIGHT * 2 / 3, CANVAS_WIDTH - 20, 20, rgb(255, 255, 255));
+        api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Loading...", COLOR_WHITE);
+        api->drawRect(10, CANVAS_HEIGHT * 2 / 3, CANVAS_WIDTH - 20, 20, COLOR_WHITE);
         api->drawRect(10, CANVAS_HEIGHT * 2 / 3, (CANVAS_WIDTH - 20) * progress / 100, 20, rgb(0, 255, 0));
 
         // TODO: Change when arduino implementation started
-        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT * 2 / 3 + 12, int2string(progress), rgb(0, 0, 0));
+        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT * 2 / 3 + 12, int2string(progress), COLOR_BLACK);
     }
 
     int __lastProgress = 0;
@@ -1371,13 +1375,13 @@ public:
     {
         if (selected)
         {
-            api->drawRect(10 - 3, y - 3, CANVAS_WIDTH - 20 + 6, __SELECT_MAP_HEIGHT__ + 6, rgb(0xF1, 0x60, 0xA1));
+            api->drawRect(10 - 3, y - 3, CANVAS_WIDTH - 20 + 6, __SELECT_MAP_HEIGHT__ + 6, COLOR_OSU);
             api->drawRect(10, y, CANVAS_WIDTH - 20, __SELECT_MAP_HEIGHT__, rgb_darken(255, 255, 255, opacity.current() / 100));
         }
         else
             api->drawRect(10, y, CANVAS_WIDTH - 20, __SELECT_MAP_HEIGHT__, rgb_darken(255, 255, 255, 0.3));
-        api->drawTextTopLeft(15, y + 15, int2string(cursor + 1) + ". " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).title + " - " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).Artist, rgb(0, 0, 0));
-        api->drawTextTopLeftSmaller(25, y + 33, char2string(subcursor + 'a') + ". (" + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).OverallDifficulty + ") " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).diffName, rgb(0, 0, 0));
+        api->drawTextTopLeft(15, y + 15, int2string(cursor + 1) + ". " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).title + " - " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).Artist, COLOR_BLACK);
+        api->drawTextTopLeftSmaller(25, y + 33, char2string(subcursor + 'a') + ". (" + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).OverallDifficulty + ") " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).diffName, COLOR_BLACK);
     }
 
     void render()
@@ -1385,8 +1389,8 @@ public:
         api->clear();
         if (_GLOBAL_MAPS_.size() == 0)
         {
-            api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "Select Menu", rgb(255, 255, 255));
-            api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20, "No mapset found", rgb(255, 255, 255));
+            api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "Select Menu", COLOR_WHITE);
+            api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20, "No mapset found", COLOR_WHITE);
             return;
         }
 
@@ -1528,7 +1532,7 @@ public:
     void render()
     {
         api->clear();
-        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Ingame...", rgb(255, 255, 255));
+        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Ingame...", COLOR_WHITE);
     }
 
     void update(bool forceRender)
@@ -1552,7 +1556,7 @@ public:
     void render()
     {
         api->clear();
-        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Result", rgb(255, 255, 255));
+        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Result", COLOR_WHITE);
     }
 
     void update(bool forceRender)
@@ -1578,7 +1582,7 @@ public:
     void render()
     {
         api->clear();
-        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Options", rgb(255, 255, 255));
+        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Options", COLOR_WHITE);
     }
 
     void update(bool forceRender)
@@ -1614,7 +1618,7 @@ public:
     void render()
     {
         api->clear();
-        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Downloading...", rgb(255, 255, 255));
+        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Downloading...", COLOR_WHITE);
     }
 
     void update(bool forceRender)
