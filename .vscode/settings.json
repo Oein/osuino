@@ -16,6 +16,7 @@
     "map": "cpp",
     "set": "cpp",
     "unordered_map": "cpp",
-    "vector": "cpp"
+    "vector": "cpp",
+    "__node_handle": "cpp"
   }
 }
