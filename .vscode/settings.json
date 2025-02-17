@@ -18,5 +18,6 @@
     "unordered_map": "cpp",
     "vector": "cpp",
     "__node_handle": "cpp"
-  }
+  },
+  "editor.formatOnSave": false
 }

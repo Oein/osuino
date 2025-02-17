@@ -18,6 +18,14 @@
 #define __INTRO_SCENE_TRIANGLE_NOSPAWN_MS_ 1450 - 50
 #define __INTRO_SCENE_END_MS_ 1600
 
+#define __SELECT_MAP_HEIGHT__ 50
+#define __SELECT_MAP_GAP__ 10
+
+const int __SELECT_MAP_COUNT__ = (CANVAS_HEIGHT - __SELECT_MAP_GAP__) / (__SELECT_MAP_HEIGHT__ + __SELECT_MAP_GAP__);
+const int __SELECT_PREV_MAPS__ = (__SELECT_MAP_COUNT__ - 1) / 2;
+const int __SELECT_NEXT_MAPS__ = (__SELECT_MAP_COUNT__ - __SELECT_PREV_MAPS__ - 1);
+const int __SELECT_MAP_START_Y__ = 10;
+
 IColorType rgb(int r, int g, int b)
 {
     return (r << 16) | (g << 8) | b;
@@ -44,12 +52,18 @@ IStringType int2string(int num)
     return std::to_string(num);
 }
 
+IStringType char2string(char chr) {
+    return std::string(1, chr);
+}
+
 // MARK: - Button API for Emscripten
 bool __buttonPressed__state__[4] = {false, false, false, false};
 bool buttonPressed(int button)
 {
     return __buttonPressed__state__[button];
 }
+
+void update();
 
 EM_BOOL keyCallbackPress(int eventType, const EmscriptenKeyboardEvent *keyEvent, void *userData)
 {
@@ -61,6 +75,7 @@ EM_BOOL keyCallbackPress(int eventType, const EmscriptenKeyboardEvent *keyEvent,
         __buttonPressed__state__[2] = true;
     if (keyEvent->key[0] == ';')
         __buttonPressed__state__[3] = true;
+    update();
     return 0;
 }
 
@@ -74,6 +89,7 @@ EM_BOOL keyCallbackRelease(int eventType, const EmscriptenKeyboardEvent *keyEven
         __buttonPressed__state__[2] = false;
     if (keyEvent->key[0] == ';')
         __buttonPressed__state__[3] = false;
+    update();
     return 0;
 }
 
@@ -191,6 +207,26 @@ public:
             var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
+
+    void drawTextTopLeft(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    {
+        EM_ASM_({
+            Module.ctx.font = '13pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); }, text.c_str(), x, y, color);
+    }
+
+    void drawTextTopLeftSmaller(int x, int y, IStringType text, IColorType color = rgb(255, 255, 255))
+    {
+        EM_ASM_({
+            Module.ctx.font = '10pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); }, text.c_str(), x, y, color);
+    }
 };
 
 // MARK: - Lib Multiplatform data structure
@@ -292,6 +328,27 @@ public:
     }
 };
 
+class Timer
+{
+public:
+    unsigned long long startTime;
+
+    Timer()
+    {
+        startTime = emscripten_get_now();
+    }
+
+    void reset()
+    {
+        startTime = emscripten_get_now();
+    }
+
+    int deltaTime()
+    {
+        return emscripten_get_now() - startTime;
+    }
+};
+
 class AnimatedData
 {
 public:
@@ -338,6 +395,12 @@ public:
         return false;
     }
 
+    void set(int nTarget)
+    {
+        now = nTarget;
+        target = nTarget;
+    }
+
     AnimatedData(float now)
     {
         this->now = now;
@@ -353,6 +416,52 @@ public:
         this->now = now;
         this->target = now;
         this->divider = divider;
+    }
+};
+
+class RepeatedButton
+{
+public:
+    bool lastButton = false;
+    bool buttonPressed = false;
+    bool repeat = false;
+
+    Timer timer;
+    Timer repeatTimer;
+
+    bool get(bool buttonState)
+    {
+        if (!buttonPressed && buttonState)
+        {
+            buttonPressed = true;
+            timer.reset();
+            return true;
+        }
+        if (buttonPressed && !buttonState)
+        {
+            buttonPressed = false;
+            repeat = false;
+            return false;
+        }
+        if (buttonPressed && buttonState)
+        {
+            if (timer.deltaTime() < 200 && !repeat)
+            {
+                return false;
+            }
+            if (timer.deltaTime() > 200 && !repeat)
+            {
+                repeat = true;
+                repeatTimer.reset();
+                return true;
+            }
+            if (repeat && repeatTimer.deltaTime() > 75)
+            {
+                repeatTimer.reset();
+                return true;
+            }
+        }
+        return false;
     }
 };
 
@@ -412,7 +521,7 @@ private:
                 }
             }
             rstate = OSUFileReadingState::AnyHitObjectORMETA;
-            printf("Format version: %s\n", line.substr(format.length()).c_str());
+            // printf("Format version: %s\n", line.substr(format.length()).c_str());
 
             return true;
         }
@@ -422,6 +531,8 @@ private:
             IStringType format2 = "Version:";
             IStringType format3 = "[HitObjects]";
             IStringType format4 = "BeatmapSetID:";
+            IStringType format5 = "OverallDifficulty:";
+            IStringType format6 = "Artist:";
 
             bool match1 = true;
             for (int i = 0; i < format1.length(); i++)
@@ -436,7 +547,7 @@ private:
             if (match1)
             {
                 title = line.substr(format1.length());
-                printf("Title: %s\n", title.c_str());
+                // printf("Title: %s\n", title.c_str());
                 return true;
             }
 
@@ -452,7 +563,7 @@ private:
             if (match2)
             {
                 diffName = line.substr(format2.length());
-                printf("Diff name: %s\n", diffName.c_str());
+                // printf("Diff name: %s\n", diffName.c_str());
                 return true;
             }
 
@@ -469,7 +580,7 @@ private:
             if (match3)
             {
                 rstate = OSUFileReadingState::HitObjects;
-                printf("HitObjects parse started\n");
+                // printf("HitObjects parse started\n");
                 return true;
             }
 
@@ -485,7 +596,39 @@ private:
             if (match4)
             {
                 beatmapSetID = line.substr(format4.length());
-                printf("BeatmapSetID: %s\n", beatmapSetID.c_str());
+                // printf("BeatmapSetID: %s\n", beatmapSetID.c_str());
+                return true;
+            }
+
+            bool match5 = true;
+            for (int i = 0; i < format5.length(); i++)
+            {
+                if (line[i] != format5[i])
+                {
+                    match5 = false;
+                    break;
+                }
+            }
+            if (match5)
+            {
+                OverallDifficulty = line.substr(format5.length());
+                // printf("OverallDifficulty: %s\n", OverallDifficulty.c_str());
+                return true;
+            }
+
+            bool match6 = true;
+            for (int i = 0; i < format6.length(); i++)
+            {
+                if (line[i] != format6[i])
+                {
+                    match6 = false;
+                    break;
+                }
+            }
+            if (match6)
+            {
+                Artist = line.substr(format6.length());
+                // printf("Artist: %s\n", Artist.c_str());
                 return true;
             }
 
@@ -605,6 +748,8 @@ public:
     IStringType title;
     IStringType diffName;
     IStringType beatmapSetID;
+    IStringType OverallDifficulty;
+    IStringType Artist;
 
     // used for arduino
     IStringType filePath;
@@ -647,8 +792,8 @@ public:
                 return false;
         }
 
-        printf("Loaded notes of %lu %lu %lu %lu\n", notes[0].size(), notes[1].size(), notes[2].size(), notes[3].size());
-        printf("Loaded in %d ms\n", startTime.deltaTime());
+        // printf("Loaded notes of %lu %lu %lu %lu\n", notes[0].size(), notes[1].size(), notes[2].size(), notes[3].size());
+        // printf("Loaded in %d ms\n", startTime.deltaTime());
 
         return true;
     }
@@ -807,6 +952,58 @@ public:
     }
 };
 
+// MARK: - Component Key helper
+class KeyHelper
+{
+public:
+    CnavasAPI *api;
+    KeyHelper(CnavasAPI *api)
+    {
+        this->api = api;
+    }
+
+    bool buttons[4] = {false, false, false, false};
+
+    void setBtn(bool button0, bool button1, bool button2, bool button3)
+    {
+        buttons[0] = button0;
+        buttons[1] = button1;
+        buttons[2] = button2;
+        buttons[3] = button3;
+    }
+
+    IStringType names[4] = {"S", "D", "L", ";"};
+
+    void setBtnText(IStringType button0Text, IStringType button1Text, IStringType button2Text, IStringType button3Text)
+    {
+        names[0] = button0Text;
+        names[1] = button1Text;
+        names[2] = button2Text;
+        names[3] = button3Text;
+    }
+
+    IStringType buttonKey[4] = {"S", "D", "L", ";"};
+
+    void render()
+    {
+        api->drawRect(0, CANVAS_HEIGHT - 40, CANVAS_WIDTH, 40, rgb(10, 50, 50));
+        int drawX = 5;
+        int btnWidth = (CANVAS_WIDTH - 10 - 15) / 4;
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (buttons[i])
+            {
+                api->drawRect(drawX, CANVAS_HEIGHT - 35, 30, 30, rgb(0, 0, 0));
+                api->drawText(drawX + 15, CANVAS_HEIGHT - 20, buttonKey[i], rgb(255, 255, 255));
+                // TODO: implement on arduino
+                api->drawTextTopLeft(drawX + 33, CANVAS_HEIGHT - 20, names[i], rgb(255, 255, 255));
+            }
+            drawX += btnWidth + 5;
+        }
+    }
+};
+
 // MARK: - Scene: Title
 
 enum TitleSceneKeyframe
@@ -826,9 +1023,11 @@ class TitleScene
 {
 public:
     CnavasAPI *api;
+    KeyHelper *keyHelper;
     TitleScene(CnavasAPI *api)
     {
         this->api = api;
+        keyHelper = new KeyHelper(api);
     }
 
     TitleSceneKeyframe submenuOpenAnimationType = TitleSceneKeyframe::SubmenuClose;
@@ -898,6 +1097,18 @@ public:
             api->drawOsuLogoText(logoMovX, CANVAS_HEIGHT / 2, "OSU!", rgb(255, 255, 255));
         else
             api->drawOsuLogoTextSmaller(logoMovX, CANVAS_HEIGHT / 2, "OSU!", rgb(255, 255, 255));
+
+        if (submenuOpenAnimationType == TitleSceneKeyframe::SubmenuOpen)
+        {
+            keyHelper->setBtn(true, true, true, true);
+            keyHelper->setBtnText("Left", "Right", "Sel", "Back");
+        }
+        else
+        {
+            keyHelper->setBtn(false, false, true, false);
+            keyHelper->setBtnText("Pres", "any", "Play", "play");
+        }
+        keyHelper->render();
     }
 
     void update(bool forceRender)
@@ -1084,15 +1295,33 @@ bool _GLOBAL_MAP_SD_MODIFIED_ = true;
 IMap<int> _GLOBAL_MAPS_;
 IVector<IVector<OSUFile>> _GLOBAL_MAPS_SD_;
 
+class TwoCursor
+{
+public:
+    int cursor = 0;
+    int subcursor = 0;
+
+    TwoCursor(int cursor, int subcursor)
+    {
+        this->cursor = cursor;
+        this->subcursor = subcursor;
+    }
+};
+
 class SelectScene
 {
 public:
     CnavasAPI *api;
     LoadingScene *loadingScene;
+    KeyHelper *keyHelper;
+
+    RepeatedButton button0;
+    RepeatedButton button1;
     SelectScene(CnavasAPI *api)
     {
         this->api = api;
         loadingScene = new LoadingScene(api);
+        keyHelper = new KeyHelper(api);
     }
 
     bool last3Button = false;
@@ -1107,7 +1336,7 @@ public:
             _GLOBAL_MAPS_SD_.push_back(IVector<OSUFile>());
         }
 
-        _GLOBAL_MAPS_SD_.at(_GLOBAL_MAPS_.at(of.beatmapSetID)).push_back(of);
+        _GLOBAL_MAPS_SD_.data[_GLOBAL_MAPS_.at(of.beatmapSetID)].push_back(of);
     }
 
     void syncnolus_sdmapLoading()
@@ -1116,20 +1345,40 @@ public:
         loadingScene->setProgress(0);
         loadingScene->update(true);
         loadOSUFile(OSUGAMEFILE1);
-        loadingScene->setProgress(33);
-        loadingScene->update(false);
         loadOSUFile(OSUGAMEFILE2);
-        loadingScene->setProgress(66);
-        loadingScene->update(false);
         loadOSUFile(OSUGAMEFILE3);
-        loadingScene->setProgress(100);
-        loadingScene->update(false);
+        loadOSUFile(OSUGAMEFILE4);
+        loadOSUFile(OSUGAMEFILE5);
+        loadOSUFile(OSUGAMEFILE6);
+        loadOSUFile(OSUGAMEFILE7);
+        loadOSUFile(OSUGAMEFILE8);
+        loadOSUFile(OSUGAMEFILE9);
+        loadOSUFile(OSUGAMEFILE10);
 
         printf("Loaded %lu map sets\n", _GLOBAL_MAPS_.size());
+        for (int i = 0; i < _GLOBAL_MAPS_SD_.size(); i++)
+        {
+            printf("Mapset %d has %lu maps\n", i, _GLOBAL_MAPS_SD_.at(i).size());
+        }
     }
 
     int cursor = 0;
     int mapsetCursor = 0;
+    AnimatedData yOffset = AnimatedData(0, 50);
+    AnimatedData opacity = AnimatedData(100, 50);
+
+    void renderMap(int cursor, int subcursor, bool selected, int y)
+    {
+        if (selected)
+        {
+            api->drawRect(10 - 3, y - 3, CANVAS_WIDTH - 20 + 6, __SELECT_MAP_HEIGHT__ + 6, rgb(0xF1, 0x60, 0xA1));
+            api->drawRect(10, y, CANVAS_WIDTH - 20, __SELECT_MAP_HEIGHT__, rgb_darken(255, 255, 255, opacity.current() / 100));
+        }
+        else
+            api->drawRect(10, y, CANVAS_WIDTH - 20, __SELECT_MAP_HEIGHT__, rgb_darken(255, 255, 255, 0.3));
+        api->drawTextTopLeft(15, y + 15, int2string(cursor + 1) + ". " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).title + " - " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).Artist, rgb(0, 0, 0));
+        api->drawTextTopLeftSmaller(25, y + 33, char2string(subcursor + 'a') + ". (" + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).OverallDifficulty + ") " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).diffName, rgb(0, 0, 0));
+    }
 
     void render()
     {
@@ -1138,8 +1387,73 @@ public:
         {
             api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "Select Menu", rgb(255, 255, 255));
             api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20, "No mapset found", rgb(255, 255, 255));
+            return;
         }
+
+        int renderY = __SELECT_MAP_START_Y__ + yOffset.current();
+        for (int i = __SELECT_PREV_MAPS__; i >= 1; i--)
+        {
+            TwoCursor cursor = getCursorBasedMap(-i);
+            renderMap(cursor.cursor, cursor.subcursor, false, renderY);
+            renderY += __SELECT_MAP_GAP__ + __SELECT_MAP_HEIGHT__;
+        }
+
+        renderMap(cursor, mapsetCursor, true, renderY);
+        renderY += __SELECT_MAP_GAP__ + __SELECT_MAP_HEIGHT__;
+
+        for (int i = 1; i <= __SELECT_NEXT_MAPS__; i++)
+        {
+            TwoCursor cursor = getCursorBasedMap(i);
+            renderMap(cursor.cursor, cursor.subcursor, false, renderY);
+            renderY += __SELECT_MAP_GAP__ + __SELECT_MAP_HEIGHT__;
+        }
+
+        keyHelper->setBtn(true, true, true, true);
+        keyHelper->setBtnText("Prev", "Next", "Play", "Menu");
+        keyHelper->render();
     }
+
+    TwoCursor getCursorBasedMap(int offset)
+    {
+        int globalCursor = cursor;
+        int subCursor = mapsetCursor;
+        while (offset > 0)
+        {
+            subCursor++;
+            if (subCursor >= _GLOBAL_MAPS_SD_.at(globalCursor).size())
+            {
+                globalCursor++;
+                subCursor = 0;
+            }
+            offset--;
+
+            if (globalCursor >= _GLOBAL_MAPS_SD_.size())
+            {
+                globalCursor = 0;
+                subCursor = 0;
+            }
+        }
+
+        while (offset < 0)
+        {
+            subCursor--;
+            if (subCursor < 0)
+            {
+                globalCursor--;
+                if (globalCursor < 0)
+                {
+                    globalCursor = _GLOBAL_MAPS_SD_.size() - 1;
+                }
+
+                subCursor = _GLOBAL_MAPS_SD_.at(globalCursor).size() - 1;
+            }
+            offset++;
+        }
+
+        return TwoCursor(globalCursor, subCursor);
+    }
+
+    TwoCursor lastCursor = TwoCursor(0, 0);
 
     void update(bool forceRender)
     {
@@ -1147,6 +1461,7 @@ public:
         {
             cursor = 0;
             mapsetCursor = 0;
+            lastCursor = TwoCursor(0, 0);
         }
 
         if (_GLOBAL_MAP_SD_MODIFIED_)
@@ -1158,9 +1473,36 @@ public:
         }
 
         bool updated = forceRender;
+        updated |= lastCursor.cursor != cursor;
+        updated |= lastCursor.subcursor != mapsetCursor;
+        updated |= yOffset.update();
+        updated |= opacity.update();
         if (updated)
+        {
+            lastCursor = TwoCursor(cursor, mapsetCursor);
             render();
+        }
 
+        if (button0.get(buttonPressed(0)))
+        {
+            TwoCursor cursor = getCursorBasedMap(-1);
+            this->cursor = cursor.cursor;
+            this->mapsetCursor = cursor.subcursor;
+            yOffset.set(10);
+            yOffset.setTarget(0);
+            opacity.set(60);
+            opacity.setTarget(100);
+        }
+        if (button1.get(buttonPressed(1)))
+        {
+            TwoCursor cursor = getCursorBasedMap(1);
+            this->cursor = cursor.cursor;
+            this->mapsetCursor = cursor.subcursor;
+            yOffset.set(-10);
+            yOffset.setTarget(0);
+            opacity.set(60);
+            opacity.setTarget(100);
+        }
         if (last3Button != buttonPressed(3))
         {
             last3Button = buttonPressed(3);
@@ -1309,6 +1651,7 @@ Scene lastRendered = Scene::Intro;
 void update()
 {
     bool forceRender = lastRendered != currentScene;
+    lastRendered = currentScene;
 
     if (currentScene == Scene::Ingame)
     {
