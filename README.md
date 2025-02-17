@@ -9,8 +9,8 @@ Currently making in web with wasm, to build and test much faster than testing on
  - [X] Intro
  - [X] Title menu
  - [ ] Select menu
-   +[X] Select menu UI
-   +[ ] Selet menu load from SD Card
+   - [X] Select menu UI
+   - [ ] Selet menu load from SD Card
  - [ ] Ingame
  - [ ] Results
  - [ ] Map downloads
