@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OSU</title>
+    <style>
+      body {
+        padding: 0px;
+        margin: 0px;
+        -webkit-app-region: drag;
+      }
+    </style>
   </head>
   <body>
     <canvas
@@ -11,6 +18,14 @@
       oncontextmenu="event.preventDefault()"
       tabindex="-1"
     ></canvas>
+    <script>
+      const { ipcRenderer } = require('electron');
+
+      // Override console.log to send messages to the main process
+      console.log = function(message) {
+        ipcRenderer.send('log-message', message);
+      };
+    </script>
     {{{ SCRIPT }}}
   </body>
 </html>
