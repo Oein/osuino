@@ -21,10 +21,49 @@
 #define __SELECT_MAP_HEIGHT__ 50
 #define __SELECT_MAP_GAP__ 10
 
+#define _ACCURACY_BASE_Y_ CANVAS_HEIGHT / 4 * 3 - 10
+#define _COMBO_BASE_Y_ CANVAS_HEIGHT / 2 - 100
+
 const int __SELECT_MAP_COUNT__ = (CANVAS_HEIGHT - __SELECT_MAP_GAP__) / (__SELECT_MAP_HEIGHT__ + __SELECT_MAP_GAP__);
 const int __SELECT_PREV_MAPS__ = (__SELECT_MAP_COUNT__ - 1) / 2;
 const int __SELECT_NEXT_MAPS__ = (__SELECT_MAP_COUNT__ - __SELECT_PREV_MAPS__ - 1);
 const int __SELECT_MAP_START_Y__ = 10;
+
+// which means a note shown on the screen for 300ms
+// after 300ms it should be pressed
+float _NOTE_SPEED_ = 500.0;
+// which means a note can be pressed 50ms before it shown on the screen
+// and 50ms after it shown on the screen
+float _NOTE_ALLOWANCE_ = 50.0;
+float _NOTE_START_Y_ = 0.0;
+float _NOTE_END_Y_ = CANVAS_HEIGHT - 50.0;
+float _NOTE_Y_RANGE_ = _NOTE_END_Y_ - _NOTE_START_Y_;
+float _NOTE_Y_SPEED_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
+
+#define _JUDEGE_MAX_100_ 41
+#define _JUDGE_MAX_90_ 54
+#define _JUDGE_MAX_80_ 75
+#define _JUDGE_MAX_70_ 96
+#define _JUDGE_MAX_60_ 120
+#define _JUDGE_MAX_50_ 129
+#define _JUDGE_MAX_40_ 138
+#define _JUDGE_MAX_30_ 147
+#define _JUDGE_MAX_20_ 159
+#define _JUDGE_MAX_10_ 177
+
+float _HEALTH_BY_SCORE_[] = {
+    -7,
+    0.5, // 10,
+    0.71, // 20
+    0.8, // 30
+    0.88, // 40
+    0.95, // 50
+    1, // 60
+    1.05, // 70
+    1.15, // 80
+    1.3, // 90
+    1.5, // 100
+};
 
 IColorType rgb(int r, int g, int b)
 {
@@ -40,6 +79,14 @@ IColorType rgb_darken(int r, int g, int b, float factor__)
 const IColorType COLOR_BLACK = rgb(0, 0, 0);
 const IColorType COLOR_WHITE = rgb(255, 255, 255);
 const IColorType COLOR_OSU = rgb(0xF1, 0x60, 0xA1);
+const IColorType NOTE_COLORS[] = {
+    // #C5C5C8
+    // #FFA503
+    rgb(0xC5, 0xC5, 0xC8),
+    rgb(0xFF, 0xA5, 0x03),
+    rgb(0xFF, 0xA5, 0x03),
+    rgb(0xC5, 0xC5, 0xC8),
+};
 
 int randint(int min, int max)
 {
@@ -58,6 +105,11 @@ IStringType int2string(int num)
 
 IStringType char2string(char chr) {
     return std::string(1, chr);
+}
+
+int largest(int a, int b)
+{
+    return a > b ? a : b;
 }
 
 // MARK: - Button API for Emscripten
@@ -290,6 +342,44 @@ public:
     }
 };
 
+// MARK: - EMSCRIPTEN fs
+
+#include "./mem.cpp"
+
+class FS {
+public:
+    IVector<IStringType> list() {
+        IVector<IStringType> result;
+        result.push_back("/1.osu");
+        result.push_back("/2.osu");
+        result.push_back("/3.osu");
+        result.push_back("/4.osu");
+        result.push_back("/5.osu");
+        result.push_back("/6.osu");
+        result.push_back("/7.osu");
+        result.push_back("/8.osu");
+        result.push_back("/9.osu");
+        result.push_back("/10.osu");
+        return result;
+    }
+
+    IStringType get(IStringType filename) {
+        if(filename == "/1.osu") return OSUGAMEFILE1;
+        if(filename == "/2.osu") return OSUGAMEFILE2;
+        if(filename == "/3.osu") return OSUGAMEFILE3;
+        if(filename == "/4.osu") return OSUGAMEFILE4;
+        if(filename == "/5.osu") return OSUGAMEFILE5;
+        if(filename == "/6.osu") return OSUGAMEFILE6;
+        if(filename == "/7.osu") return OSUGAMEFILE7;
+        if(filename == "/8.osu") return OSUGAMEFILE8;
+        if(filename == "/9.osu") return OSUGAMEFILE9;
+        if(filename == "/10.osu") return OSUGAMEFILE10;
+        return "";
+    }
+};
+
+FS fs;
+
 // MARK: - Lib: Animation
 
 class Keyframes
@@ -471,8 +561,6 @@ public:
 
 // MARK: - Lib: OSU FILE
 
-#include "./mem.cpp"
-
 class OSUNote
 {
 public:
@@ -488,6 +576,10 @@ public:
     int time;
     int type;
     int endtime;
+
+    bool isHoldNote() {
+        return endtime;
+    }
 };
 
 enum OSUFileReadingState
@@ -758,8 +850,22 @@ public:
     // used for arduino
     IStringType filePath;
 
-    bool load(IStringType notedata, bool loadOnlyMetadata = false)
+    bool load(IStringType fpath, bool loadOnlyMetadata = false)
     {
+        filePath = fpath;
+        return loadFrom(loadOnlyMetadata);
+    }
+
+    void unload() {
+        notes[0].clear();
+        notes[1].clear();
+        notes[2].clear();
+        notes[3].clear();
+    }
+
+    bool loadFrom(bool loadOnlyMetadata = false) {
+        IStringType notedata = fs.get(filePath);
+
         DeltaTime startTime;
         startTime.deltaTime();
 
@@ -1299,6 +1405,9 @@ bool _GLOBAL_MAP_SD_MODIFIED_ = true;
 IMap<int> _GLOBAL_MAPS_;
 IVector<IVector<OSUFile>> _GLOBAL_MAPS_SD_;
 
+#define MP(x, y) _GLOBAL_MAPS_SD_.data[x].data[y]
+#define NMAP MP(requestedPlaymap.cursor, requestedPlaymap.subcursor)
+
 class TwoCursor
 {
 public:
@@ -1311,6 +1420,8 @@ public:
         this->subcursor = subcursor;
     }
 };
+
+TwoCursor requestedPlaymap = TwoCursor(0, 0);
 
 class SelectScene
 {
@@ -1328,12 +1439,13 @@ public:
         keyHelper = new KeyHelper(api);
     }
 
+    bool last2Button = false;
     bool last3Button = false;
 
-    void loadOSUFile(IStringType data)
+    void loadOSUFile(IStringType filepath)
     {
         OSUFile of = OSUFile();
-        of.load(data, true);
+        of.load(filepath, true);
         if (!_GLOBAL_MAPS_.has(of.beatmapSetID))
         {
             _GLOBAL_MAPS_.insert(of.beatmapSetID, _GLOBAL_MAPS_.size());
@@ -1348,16 +1460,16 @@ public:
         // TODO: implement on arduino
         loadingScene->setProgress(0);
         loadingScene->update(true);
-        loadOSUFile(OSUGAMEFILE1);
-        loadOSUFile(OSUGAMEFILE2);
-        loadOSUFile(OSUGAMEFILE3);
-        loadOSUFile(OSUGAMEFILE4);
-        loadOSUFile(OSUGAMEFILE5);
-        loadOSUFile(OSUGAMEFILE6);
-        loadOSUFile(OSUGAMEFILE7);
-        loadOSUFile(OSUGAMEFILE8);
-        loadOSUFile(OSUGAMEFILE9);
-        loadOSUFile(OSUGAMEFILE10);
+        IVector<IStringType> files = fs.list();
+        int totalFiles = files.size();
+        for (int i = 0; i < totalFiles; i++)
+        {
+            IStringType file = files.data[i];
+            
+                loadOSUFile(file);
+                loadingScene->setProgress((i + 1) * 100 / totalFiles);
+                loadingScene->update(false);
+        }
 
         printf("Loaded %lu map sets\n", _GLOBAL_MAPS_.size());
         for (int i = 0; i < _GLOBAL_MAPS_SD_.size(); i++)
@@ -1516,30 +1628,357 @@ public:
                 return;
             }
         }
+        if(last2Button != buttonPressed(2))
+        {
+            last2Button = buttonPressed(2);
+            if (!last2Button)
+            {
+                requestedPlaymap = TwoCursor(cursor, mapsetCursor);
+                currentScene = Scene::Ingame;
+                return;
+            }
+        }
     }
 };
 
 // MARK: - Scene: Ingame
-class IngameScene
+
+enum IngameButtonType {
+    RELEASED,
+    JUST_PRESSED,
+    HOLDING,
+};
+
+class IngameButton
 {
 public:
+    bool lastButton = false;
+
+    IngameButtonType get(bool buttonState)
+    {
+        if(!buttonState) {
+            lastButton = false;
+            return IngameButtonType::RELEASED;
+        }
+
+        if(!lastButton) {
+            lastButton = true;
+            return IngameButtonType::JUST_PRESSED;
+        }
+
+        return IngameButtonType::HOLDING;
+    }
+};
+
+
+float health = 100;
+int combo = 0;
+
+class AccuracyViewer {
+public:
     CnavasAPI *api;
-    IngameScene(CnavasAPI *api)
+    int targetAcc = 0;
+    bool requested = false;
+    Timer timer;
+    AnimatedData accY = AnimatedData(0, 100);
+    
+    AccuracyViewer(CnavasAPI *api)
     {
         this->api = api;
     }
 
+    void update() {
+        accY.update();
+        if(requested) {
+            if(timer.deltaTime() > 250) {
+                requested = false;
+                targetAcc = 0;
+                return;
+            }
+
+            if(targetAcc == 0) {
+                api->drawText(CANVAS_WIDTH / 2, accY.current() + _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
+            }
+            else api->drawText(CANVAS_WIDTH / 2, accY.current() + _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
+        }
+    }
+
+    void setTargetAcc(int acc) {
+        targetAcc = acc;
+        requested = true;
+        timer.reset();
+        accY.set(10);
+        accY.setTarget(0);
+    }
+};
+
+AccuracyViewer* accuracyViewer;
+
+class IngameLineHandler {
+public:
+    CnavasAPI *api;
+    IngameButton igbtn;
+    int keyIndex = 0;
+    int keyX = 0;
+
+    // which menas notes have to be rendered from index of `noteRenderIndex`
+    int noteRenderIndex = 0;
+
+    IngameLineHandler(CnavasAPI *api, int keyIndex)
+    {
+        this->api = api;
+        this->keyIndex = keyIndex;
+        this->keyX = CANVAS_WIDTH / 4 * keyIndex;
+    }
+
+    void initlize()
+    {
+        noteRenderIndex = 0;
+    }
+
+    bool handlingLongNote;
+    int longNoteIndex = 0;
+
+    int calculateAcc(int deltaTime) {
+        int diff = abs(deltaTime);
+        if(diff < _JUDEGE_MAX_100_) return 100;
+        if(diff < _JUDGE_MAX_90_) return 90;
+        if(diff < _JUDGE_MAX_80_) return 80;
+        if(diff < _JUDGE_MAX_70_) return 70;
+        if(diff < _JUDGE_MAX_60_) return 60;
+        if(diff < _JUDGE_MAX_50_) return 50;
+        if(diff < _JUDGE_MAX_40_) return 40;
+        if(diff < _JUDGE_MAX_30_) return 30;
+        if(diff < _JUDGE_MAX_20_) return 20;
+        if(diff < _JUDGE_MAX_10_) return 10;
+        return 0;
+    }
+
+    void render(int time)
+    {
+        if(handlingLongNote) {
+            api->drawRect(keyX, CANVAS_HEIGHT - 40, CANVAS_WIDTH / 4, 40, COLOR_OSU);
+        }
+        for(int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++)
+        {
+            int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].at(i).time - time) * _NOTE_Y_SPEED_;
+
+            float renderH = 10;
+            if(NMAP.notes[keyIndex].at(i).isHoldNote()) {
+                float holdHieght = (NMAP.notes[keyIndex].at(i).endtime - NMAP.notes[keyIndex].at(i).time)  * _NOTE_Y_SPEED_;
+                renderH = holdHieght < 10 ? 10 : holdHieght;
+
+                renderH = holdHieght;
+                renderY -= holdHieght;
+                if(renderY < 0) {
+                    renderH += renderY;
+                    renderY = 0;
+                }
+            }
+
+
+            if(renderY < 0) {
+                break;
+            }
+            if(renderY > CANVAS_HEIGHT) {
+                if(NMAP.notes[keyIndex].at(i).isHoldNote()) {
+                    if(!handlingLongNote) {
+                        accuracyViewer->setTargetAcc(0);
+                        health -= 10;
+                        combo = 0;
+                        noteRenderIndex = i + 1;
+                    }
+                } else {
+                    health -= 10;
+                    combo = 0;
+                    printf("Missed note\n");
+                    noteRenderIndex = i + 1;
+                    accuracyViewer->setTargetAcc(0);
+                }
+                break;
+            }
+            if(renderY + renderH > CANVAS_HEIGHT) {
+                renderH = CANVAS_HEIGHT - renderY;
+            }
+
+            api->drawRect(keyX, renderY, CANVAS_WIDTH / 4, renderH, NOTE_COLORS[keyIndex]);
+        }
+
+        IngameButtonType buttonState = igbtn.get(buttonPressed(keyIndex));
+        if(handlingLongNote) {
+            printf("LNT %d\n",NMAP.notes[keyIndex].at(longNoteIndex).endtime - time);
+            printf("EDT %d\n", NMAP.notes[keyIndex].at(longNoteIndex).endtime);
+            printf("T %d\n", time);
+            if(buttonState == IngameButtonType::RELEASED) {
+                int acc = calculateAcc(NMAP.notes[keyIndex].at(longNoteIndex).endtime - time);
+                if(acc == 0) {
+                    accuracyViewer->setTargetAcc(0);
+                    health -= 10;
+                    noteRenderIndex = largest(noteRenderIndex, longNoteIndex + 1);
+                    combo = 0;
+                    printf("Missed long note end\n");
+                } else {
+                    accuracyViewer->setTargetAcc(100);
+                    noteRenderIndex = largest(noteRenderIndex, longNoteIndex + 1);
+                }
+                handlingLongNote = false;
+                printf("Handling long note end === RELEASED\n");
+            }
+            printf("Handling long note\n");
+            return;
+        }
+
+        if(buttonState == IngameButtonType::JUST_PRESSED) {
+            // get the most closest note
+            int closestNoteIndex = noteRenderIndex;
+            int closestNoteTime = 1234567890;
+            for(int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++) {
+                int noteTime = NMAP.notes[keyIndex].at(i).time - time;
+                if((noteTime) < (closestNoteTime)) {
+                    closestNoteTime = noteTime;
+                    closestNoteIndex = i;
+                }
+            }
+
+            if(closestNoteTime > _JUDGE_MAX_10_ + 100) return;
+            
+            if(NMAP.notes[keyIndex].at(closestNoteIndex).isHoldNote()) {
+                int acc = calculateAcc(closestNoteTime);
+                accuracyViewer->setTargetAcc(acc);
+                health += _HEALTH_BY_SCORE_[acc / 10];
+                if(acc == 0) {
+                    // miss
+                    noteRenderIndex = largest(noteRenderIndex, closestNoteIndex + 1);
+                    combo = 0;
+                    printf("Missed long note start\n");
+                } else {
+                    handlingLongNote = true;
+                    longNoteIndex = closestNoteIndex;
+                    combo++;
+                }
+            } else {
+                int acc = calculateAcc(closestNoteTime);
+                accuracyViewer->setTargetAcc(acc);
+                health += _HEALTH_BY_SCORE_[acc / 10];
+                if(acc == 0) {
+                    // miss
+                    noteRenderIndex = largest(noteRenderIndex, closestNoteIndex + 1);
+                    combo = 0;
+                    printf("Missed note\n");
+                } else {
+                    // hit
+                    noteRenderIndex = largest(noteRenderIndex, closestNoteIndex + 1);
+                    combo++;
+                }
+            }
+        }
+    }
+};
+
+class IngameScene
+{
+public:
+    CnavasAPI *api;
+    Timer timer;
+    IngameLineHandler *lineHandlers[4];
+    LoadingScene *loadingScene;
+    AnimatedData comboY = AnimatedData(0, 50);
+    IngameScene(CnavasAPI *api)
+    {
+        this->api = api;
+        for (int i = 0; i < 4; i++)
+        {
+            lineHandlers[i] = new IngameLineHandler(api, i);
+        }
+        loadingScene = new LoadingScene(api);
+        accuracyViewer = new AccuracyViewer(api);
+    }
+
+    DeltaTime deltaTime;
+
+    int lastCombo = 0;
+
     void render()
     {
+        comboY.update();
+
         api->clear();
-        api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Ingame...", COLOR_WHITE);
+        accuracyViewer->update();
+        for (int i = 0; i < 4; i++)
+        {
+            lineHandlers[i]->render(timer.deltaTime());
+        }
+
+        // 판정선 그리기
+        api->drawRect(0, _NOTE_END_Y_, CANVAS_WIDTH, 2, COLOR_WHITE);
+
+        if(health > 100) health = 100;
+        // 체력선 그리기
+        api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
+
+        if(health <= 0) {
+            currentScene = Scene::Result;
+        }
+
+        if(combo != lastCombo) {
+            lastCombo = combo;
+            comboY.set(10);
+            comboY.setTarget(0);
+        }
+
+        // combo
+        if(combo > 0) {
+            api->drawOsuLogoTextSmaller(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
+            api->drawOsuLogoText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
+        }
+    }
+
+    TwoCursor lastLoaded = TwoCursor(1234567890, 0);
+
+    void syncnolus_ingameLoading()
+    {
+        if (lastLoaded.cursor == requestedPlaymap.cursor && lastLoaded.subcursor == requestedPlaymap.subcursor) return;
+
+        loadingScene->setProgress(0);
+        loadingScene->update(true);
+
+        // unload last loaded
+        if (lastLoaded.cursor < _GLOBAL_MAPS_SD_.size())
+        {
+            _GLOBAL_MAPS_SD_.data[lastLoaded.cursor].data[lastLoaded.subcursor].unload();
+            printf("Unloaded map %s\n", _GLOBAL_MAPS_SD_.at(lastLoaded.cursor).at(lastLoaded.subcursor).title.c_str());
+        }
+
+        loadingScene->setProgress(10);
+        loadingScene->update(true);
+
+        lastLoaded = requestedPlaymap;
+        printf("Loading map %s\n", _GLOBAL_MAPS_SD_.data[lastLoaded.cursor].data[lastLoaded.subcursor].title.c_str());
+        _GLOBAL_MAPS_SD_.data[lastLoaded.cursor].data[lastLoaded.subcursor].loadFrom();
+
+        loadingScene->setProgress(100);
+        loadingScene->update(true);
+    }
+
+    void initlize()
+    {
+        timer.reset();
+        for (int i = 0; i < 4; i++)
+        {
+            lineHandlers[i]->initlize();
+        }
+        health = 100;
+        combo = 0;
+        deltaTime.deltaTime();
     }
 
     void update(bool forceRender)
     {
-        bool updated = forceRender;
-        if (updated)
-            render();
+        syncnolus_ingameLoading();
+        if(forceRender) initlize();
+
+        // This is in game so we need to render it every frame
+        render();
     }
 };
 
@@ -1652,8 +2091,7 @@ DownloadScene downloadScene(&api);
 
 Scene lastRendered = Scene::Intro;
 
-void update()
-{
+void updateSubcall() {
     bool forceRender = lastRendered != currentScene;
     lastRendered = currentScene;
 
@@ -1697,10 +2135,23 @@ void update()
     }
 }
 
+float avgms = 0;
+
+void update()
+{
+    Timer t;
+    updateSubcall();
+    if(t.deltaTime() == 0) return;
+    avgms = (avgms + t.deltaTime()) / 2;
+    printf("Update took %fms\n", avgms);
+}
+
 // MARK: - Emscripten Entry Point
 
 int main()
 {
+    printf("============================\n");
+    printf("OSUino started\n");
     emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, keyCallbackPress);
     emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, keyCallbackRelease);
     emscripten_set_main_loop(update, 0, 1);

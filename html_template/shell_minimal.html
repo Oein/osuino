@@ -18,14 +18,14 @@
       oncontextmenu="event.preventDefault()"
       tabindex="-1"
     ></canvas>
-    <script>
+    <!-- <script>
       const { ipcRenderer } = require('electron');
 
       // Override console.log to send messages to the main process
       console.log = function(message) {
         ipcRenderer.send('log-message', message);
       };
-    </script>
+    </script> -->
     {{{ SCRIPT }}}
   </body>
 </html>

@@ -17,7 +17,16 @@
     "set": "cpp",
     "unordered_map": "cpp",
     "vector": "cpp",
-    "__node_handle": "cpp"
+    "__node_handle": "cpp",
+    "limits": "cpp",
+    "array": "cpp",
+    "bitset": "cpp",
+    "initializer_list": "cpp",
+    "queue": "cpp",
+    "span": "cpp",
+    "stack": "cpp",
+    "string_view": "cpp",
+    "valarray": "cpp"
   },
   "editor.formatOnSave": false,
   "typescript.tsdk": "electron/.yarn/sdks/typescript/lib",
