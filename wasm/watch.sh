@@ -1,2 +1,1 @@
-source ../
 nodemon -w src/* --exec "em++ src/main.cpp -o hello.html -O1 --shell-file html_template/shell_minimal.html -sEXPORTED_RUNTIME_METHODS=\"['cwrap','allocateUTF8','UTF8ToString']\" -sASSERTIONS"
