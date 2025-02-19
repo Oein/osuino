@@ -11,7 +11,8 @@ Currently making in web with wasm, to build and test much faster than testing on
  - [ ] Select menu
    - [X] Select menu UI
    - [ ] Selet menu load from SD Card
- - [ ] Ingame
+ - [X] Ingame
+   > Now has an arduino crash beacuse of running out of ram
  - [ ] Results
  - [ ] Map downloads
  - [X] Read osu map file
