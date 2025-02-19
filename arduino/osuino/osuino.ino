@@ -48,6 +48,9 @@ float _NOTE_Y_SPEED_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
 #define _JUDGE_MAX_10_ 177
 
 #define __DO_NOT_ANIMATE__ true
+#define __NO_DIE__ true
+
+float _SINGLE_NOTE_HIEGHT_ = 20;
 
 float _HEALTH_BY_SCORE_[] = {
     -7,
@@ -1726,19 +1729,15 @@ public:
         bool newRendered[CANVAS_HEIGHT] = {
             false,
         };
-        if (handlingLongNote)
-        {
-            api->drawRect(keyX, CANVAS_HEIGHT - 40, CANVAS_WIDTH / 4, 40, COLOR_OSU);
-        }
         for (int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++)
         {
             int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].at(i).time - time) * _NOTE_Y_SPEED_;
 
-            float renderH = 10;
+            float renderH = _SINGLE_NOTE_HIEGHT_;
             if (NMAP.notes[keyIndex].at(i).isHoldNote())
             {
                 float holdHieght = (NMAP.notes[keyIndex].at(i).endtime - NMAP.notes[keyIndex].at(i).time) * _NOTE_Y_SPEED_;
-                renderH = holdHieght < 10 ? 10 : holdHieght;
+                renderH = holdHieght < _SINGLE_NOTE_HIEGHT_ ? _SINGLE_NOTE_HIEGHT_ : holdHieght;
 
                 renderH = holdHieght;
                 renderY -= holdHieght;
@@ -1780,7 +1779,7 @@ public:
                 renderH = CANVAS_HEIGHT - renderY;
             }
 
-            for (int j = renderY; j < renderY + renderH; j++)
+            for (int j = renderY; j <= renderY + renderH; j++)
             {
                 newRendered[j] = true;
             }
@@ -1791,13 +1790,25 @@ public:
         bool seqData = false;
         for (int i = 0; i < CANVAS_HEIGHT; i++)
         {
-            if (rendered[i] && !newRendered[i])
+            if (rendered[i] != newRendered[i])
             {
+                if(renderSeq != -1 && seqData != newRendered[i]){
+                    if (seqData)
+                    {
+                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
+                    }
+                    else
+                    {
+                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
+                    }
+                    renderSeq = -1;
+                }
+                
                 if (renderSeq == -1)
                 {
                     renderSeq = i;
                     renderSeqStart = i;
-                    seqData = true;
+                    seqData = newRendered[i];
                 }
                 else
                 {
@@ -1810,7 +1821,7 @@ public:
                 {
                     if (seqData)
                     {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart, NOTE_COLORS[keyIndex]);
+                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
                     }
                     else
                     {
@@ -1821,6 +1832,18 @@ public:
             }
 
             rendered[i] = newRendered[i];
+        }
+
+        if (renderSeq != -1)
+        {
+            if (seqData)
+            {
+                api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
+            }
+            else
+            {
+                api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
+            }
         }
 
         IngameButtonType buttonState = igbtn.get(buttonPressed(keyIndex));
@@ -1938,7 +1961,7 @@ public:
     void render()
     {
         comboY.update();
-        accuracyViewer->update();
+
         for (int i = 0; i < 4; i++)
         {
             lineHandlers[i]->render(timer.deltaTime());
@@ -1950,12 +1973,14 @@ public:
         if (health > 100)
             health = 100;
         // 체력선 그리기
-        api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
+        // api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
 
+#ifndef __NO_DIE__
         if (health <= 0)
         {
             currentScene = Scene::Result;
         }
+#endif
 
         if (combo != lastCombo)
         {
@@ -1964,8 +1989,14 @@ public:
             comboY.setTarget(0);
         }
 
-        api->drawOsuLogoTextSmaller(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
-        api->drawOsuLogoText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
+        // combo
+        if (combo > 0)
+        {
+            api->drawOsuLogoTextSmaller(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
+            api->drawOsuLogoText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
+        }
+
+        accuracyViewer->update();
     }
 
     TwoCursor lastLoaded = TwoCursor(1234567890, 0);
