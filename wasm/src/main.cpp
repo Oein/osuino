@@ -1,12 +1,16 @@
 #include <stdio.h>
+#include <emscripten.h>
+#include <emscripten/val.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #include <string.h>
 
 // https://github.com/codewitch-honey-crisis/htcw_zip/blob/master/examples/demo/src/main.cpp
 
 // MARK: - Constants
 
-#define IColorType int16_t
-#define IStringType String
+#define IColorType int
+#define IStringType std::string
 #define CANVAS_WIDTH 320
 #define CANVAS_HEIGHT 480
 
@@ -632,7 +636,7 @@ private:
 
             if (match1)
             {
-                title = line.substring(format1.length());
+                title = line.substr(format1.length());
                 return true;
             }
 
@@ -647,7 +651,7 @@ private:
             }
             if (match2)
             {
-                diffName = line.substring(format2.length());
+                diffName = line.substr(format2.length());
                 // printf("Diff name: %s\n", diffName.c_str());
                 return true;
             }
@@ -680,7 +684,7 @@ private:
             }
             if (match4)
             {
-                beatmapSetID = line.substring(format4.length());
+                beatmapSetID = line.substr(format4.length());
                 // printf("BeatmapSetID: %s\n", beatmapSetID.c_str());
                 return true;
             }
@@ -696,7 +700,7 @@ private:
             }
             if (match5)
             {
-                OverallDifficulty = line.substring(format5.length());
+                OverallDifficulty = line.substr(format5.length());
                 // printf("OverallDifficulty: %s\n", OverallDifficulty.c_str());
                 return true;
             }
@@ -712,7 +716,7 @@ private:
             }
             if (match6)
             {
-                Artist = line.substring(format6.length());
+                Artist = line.substr(format6.length());
                 // printf("Artist: %s\n", Artist.c_str());
                 return true;
             }
