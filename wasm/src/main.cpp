@@ -288,6 +288,36 @@ public:
             var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
             Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
+
+    void drawComboNumber(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
+    {
+        EM_ASM_({
+            Module.ctx.font = '26pt Arial';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textWidth = measure.width;
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            // draw background with black
+            Module.ctx.fillStyle = 'rgb(0, 0, 0)';
+            Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
+
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
+    }
+
+    void drawComboText(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
+    {
+        EM_ASM_({
+            Module.ctx.font = '13pt Arial';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textWidth = measure.width;
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            // draw background with black
+            Module.ctx.fillStyle = 'rgb(0, 0, 0)';
+            Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
+
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
+    }
 };
 
 // MARK: - Lib Multiplatform data structure
@@ -1711,7 +1741,6 @@ public:
     int targetAcc = 0;
     bool requested = false;
     Timer timer;
-    AnimatedData accY = AnimatedData(0, 100);
 
     AccuracyViewer(CnavasAPI *api)
     {
@@ -1720,7 +1749,6 @@ public:
 
     void update()
     {
-        accY.update();
         if (requested)
         {
             if (timer.deltaTime() > 250)
@@ -1732,10 +1760,10 @@ public:
 
             if (targetAcc == 0)
             {
-                api->drawText(CANVAS_WIDTH / 2, accY.current() + _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
+                api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
             }
             else
-                api->drawText(CANVAS_WIDTH / 2, accY.current() + _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
+                api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
         }
     }
 
@@ -1744,8 +1772,6 @@ public:
         targetAcc = acc;
         requested = true;
         timer.reset();
-        accY.set(10);
-        accY.setTarget(0);
     }
 };
 
@@ -1879,16 +1905,10 @@ public:
                     if (seqData)
                     {
                         api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
-                        if(_NOTE_END_Y_ >= renderSeq && _NOTE_END_Y_ <= renderSeqStart){
-                            shouldDrawPanjung = true;
-                        }
                     }
                     else
                     {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart, COLOR_BLACK);
-                        if(_NOTE_END_Y_ >= renderSeq && _NOTE_END_Y_ <= renderSeqStart){
-                            shouldDrawPanjung = true;
-                        }
+                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
                     }
                     renderSeq = -1;
                 }
@@ -1911,16 +1931,10 @@ public:
                     if (seqData)
                     {
                         api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
-                        if(_NOTE_END_Y_ >= renderSeq && _NOTE_END_Y_ <= renderSeqStart){
-                            shouldDrawPanjung = true;
-                        }
                     }
                     else
                     {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart, COLOR_BLACK);
-                        if(_NOTE_END_Y_ >= renderSeq && _NOTE_END_Y_ <= renderSeqStart){
-                            shouldDrawPanjung = true;
-                        }
+                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
                     }
                     renderSeq = -1;
                 }
@@ -1934,16 +1948,10 @@ public:
             if (seqData)
             {
                 api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
-                if(_NOTE_END_Y_ >= renderSeq && _NOTE_END_Y_ <= renderSeqStart){
-                    shouldDrawPanjung = true;
-                }
             }
             else
             {
-                api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart, COLOR_BLACK);
-                if(_NOTE_END_Y_ >= renderSeq && _NOTE_END_Y_ <= renderSeqStart){
-                    shouldDrawPanjung = true;
-                }
+                api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
             }
         }
 
@@ -2043,7 +2051,6 @@ public:
     Timer timer;
     IngameLineHandler *lineHandlers[4];
     LoadingScene *loadingScene;
-    AnimatedData comboY = AnimatedData(0, 50);
     IngameScene(CnavasAPI *api)
     {
         this->api = api;
@@ -2057,22 +2064,15 @@ public:
 
     DeltaTime deltaTime;
 
-    int lastCombo = 0;
-
     void render()
     {
-        comboY.update();
-
         for (int i = 0; i < 4; i++)
         {
             lineHandlers[i]->render(timer.deltaTime());
         }
 
         // 판정선 그리기
-        if(shouldDrawPanjung) {
-            api->drawRect(0, _NOTE_END_Y_, CANVAS_WIDTH, 2, COLOR_WHITE);
-            shouldDrawPanjung = false;
-        }
+        api->drawRect(0, _NOTE_END_Y_, CANVAS_WIDTH, 2, COLOR_WHITE);
 
         if (health > 100)
             health = 100;
@@ -2086,18 +2086,11 @@ public:
         }
 #endif
 
-        if (combo != lastCombo)
-        {
-            lastCombo = combo;
-            comboY.set(10);
-            comboY.setTarget(0);
-        }
-
         // combo
         if (combo > 0)
         {
-            api->drawOsuLogoTextSmaller(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
-            api->drawOsuLogoText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
+            api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
+            api->drawComboNumber(CANVAS_WIDTH / 2, _COMBO_BASE_Y_, int2string(combo), COLOR_WHITE);
         }
 
         accuracyViewer->update();
@@ -2129,7 +2122,6 @@ public:
 
         loadingScene->setProgress(100);
         loadingScene->update(true);
-        shouldDrawPanjung = true;
     }
 
     void initlize()

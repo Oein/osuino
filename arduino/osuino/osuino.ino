@@ -233,6 +233,26 @@ public:
         tft.setTextDatum(TL_DATUM);
         tft.drawString(text, x, y);
     }
+    
+    void drawComboText(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
+    {
+        // 13pt
+        // relative to center
+        tft.setFreeFont(FSB12);
+        tft.setTextColor(color, COLOR_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(text, x, y);
+    }
+
+    void drawComboNumber(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
+    {
+        // 13pt
+        // relative to center
+        tft.setFreeFont(FSB24);
+        tft.setTextColor(color, COLOR_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(text, x, y);
+    }
 };
 
 // MARK: - Lib Multiplatform data structure
@@ -1628,7 +1648,6 @@ public:
     int targetAcc = 0;
     bool requested = false;
     Timer timer;
-    AnimatedData accY = AnimatedData(0, 100);
 
     AccuracyViewer(CnavasAPI *api)
     {
@@ -1637,7 +1656,6 @@ public:
 
     void update()
     {
-        accY.update();
         if (requested)
         {
             if (timer.deltaTime() > 250)
@@ -1649,10 +1667,10 @@ public:
 
             if (targetAcc == 0)
             {
-                api->drawText(CANVAS_WIDTH / 2, accY.current() + _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
+                api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
             }
             else
-                api->drawText(CANVAS_WIDTH / 2, accY.current() + _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
+                api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
         }
     }
 
@@ -1661,8 +1679,6 @@ public:
         targetAcc = acc;
         requested = true;
         timer.reset();
-        accY.set(10);
-        accY.setTarget(0);
     }
 };
 
@@ -1992,8 +2008,8 @@ public:
         // combo
         if (combo > 0)
         {
-            api->drawOsuLogoTextSmaller(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
-            api->drawOsuLogoText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
+            api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
+            api->drawComboNumber(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
         }
 
         accuracyViewer->update();
