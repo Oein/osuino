@@ -1958,7 +1958,6 @@ public:
     Timer timer;
     IngameLineHandler *lineHandlers[4];
     LoadingScene *loadingScene;
-    AnimatedData comboY = AnimatedData(0, 50);
     IngameScene(CnavasAPI *api)
     {
         this->api = api;
@@ -1972,12 +1971,8 @@ public:
 
     DeltaTime deltaTime;
 
-    int lastCombo = 0;
-
     void render()
     {
-        comboY.update();
-
         for (int i = 0; i < 4; i++)
         {
             lineHandlers[i]->render(timer.deltaTime());
@@ -1998,18 +1993,11 @@ public:
         }
 #endif
 
-        if (combo != lastCombo)
-        {
-            lastCombo = combo;
-            comboY.set(10);
-            comboY.setTarget(0);
-        }
-
         // combo
         if (combo > 0)
         {
             api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
-            api->drawComboNumber(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + comboY.current(), int2string(combo), COLOR_WHITE);
+            api->drawComboNumber(CANVAS_WIDTH / 2, _COMBO_BASE_Y_, int2string(combo), COLOR_WHITE);
         }
 
         accuracyViewer->update();
