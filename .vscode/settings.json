@@ -26,7 +26,13 @@
     "span": "cpp",
     "stack": "cpp",
     "string_view": "cpp",
-    "valarray": "cpp"
+    "valarray": "cpp",
+    "complex": "cpp",
+    "memory": "cpp",
+    "future": "cpp",
+    "istream": "cpp",
+    "locale": "cpp",
+    "variant": "cpp"
   },
   "editor.formatOnSave": false,
   "typescript.tsdk": "electron/.yarn/sdks/typescript/lib",

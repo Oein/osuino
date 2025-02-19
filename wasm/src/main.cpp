@@ -1838,208 +1838,44 @@ public:
         bool newRendered[CANVAS_HEIGHT] = {
             false,
         };
-        for (int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++)
-        {
-            int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].at(i).time - time) * _NOTE_Y_SPEED_;
 
-            float renderH = _SINGLE_NOTE_HIEGHT_;
-            if (NMAP.notes[keyIndex].at(i).isHoldNote())
-            {
-                float holdHieght = (NMAP.notes[keyIndex].at(i).endtime - NMAP.notes[keyIndex].at(i).time) * _NOTE_Y_SPEED_;
-                renderH = holdHieght < _SINGLE_NOTE_HIEGHT_ ? _SINGLE_NOTE_HIEGHT_ : holdHieght;
-
-                renderH = holdHieght;
-                renderY -= holdHieght;
-                if (renderY < 0)
-                {
-                    renderH += renderY;
-                    renderY = 0;
-                }
-            }
-
-            if (renderY < 0)
-            {
-                break;
-            }
-            if (renderY > CANVAS_HEIGHT)
-            {
-                if (NMAP.notes[keyIndex].at(i).isHoldNote())
-                {
-                    if (!handlingLongNote)
-                    {
-                        accuracyViewer->setTargetAcc(0);
-                        health -= 10;
-                        combo = 0;
-                        noteRenderIndex = i + 1;
-                    }
-                }
-                else
-                {
-                    health -= 10;
-                    combo = 0;
-                    printf("Missed note\n");
+        for(int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++) {
+            bool isSingleNote = NMAP.notes[keyIndex].data[i].endtime == 0;
+            if (isSingleNote) {
+                int renderY = _NOTE_END_Y_ - (time - NMAP.notes[keyIndex].data[i].time) * _NOTE_SPEED_;
+                if(renderY > CANVAS_HEIGHT) {
                     noteRenderIndex = i + 1;
-                    accuracyViewer->setTargetAcc(0);
+                    break;
                 }
+                if(renderY + _SINGLE_NOTE_HIEGHT_ < 0) {
+                    break;
+                }
+                int noteHight = renderY < 0 ? renderY + _SINGLE_NOTE_HIEGHT_ : _SINGLE_NOTE_HIEGHT_;
+                renderY = renderY < 0 ? 0 : renderY;
+                for(int j = renderY; j < renderY + noteHight; j++)
+                    newRendered[j] = true;
+                continue;
+            }
+
+            // process long note
+            int renderY = _NOTE_END_Y_ - (time - NMAP.notes[keyIndex].data[i].endtime) * _NOTE_SPEED_;
+            int renderH = (time - NMAP.notes[keyIndex].data[i].time) * _NOTE_SPEED_;
+            if(renderY > CANVAS_HEIGHT) {
+                noteRenderIndex = i + 1;
                 break;
             }
-            if (renderY + renderH > CANVAS_HEIGHT)
-            {
+            if(renderY + renderH < 0) {
+                break;
+            }
+            if(renderY < 0) {
+                renderH += renderY;
+                renderY = 0;
+            }
+            if(renderY + renderH > CANVAS_HEIGHT) {
                 renderH = CANVAS_HEIGHT - renderY;
             }
-
-            for (int j = renderY; j <= renderY + renderH; j++)
-            {
+            for(int j = renderY; j < renderY + renderH; j++)
                 newRendered[j] = true;
-            }
-        }
-
-        int renderSeq = -1;
-        int renderSeqStart = -1;
-        bool seqData = false;
-        for (int i = 0; i < CANVAS_HEIGHT; i++)
-        {
-            if (rendered[i] != newRendered[i])
-            {
-                if(renderSeq != -1 && seqData != newRendered[i]){
-                    if (seqData)
-                    {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
-                    }
-                    else
-                    {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
-                    }
-                    renderSeq = -1;
-                }
-                
-                if (renderSeq == -1)
-                {
-                    renderSeq = i;
-                    renderSeqStart = i;
-                    seqData = newRendered[i];
-                }
-                else
-                {
-                    renderSeq = i;
-                }
-            }
-            else
-            {
-                if (renderSeq != -1)
-                {
-                    if (seqData)
-                    {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
-                    }
-                    else
-                    {
-                        api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
-                    }
-                    renderSeq = -1;
-                }
-            }
-
-            rendered[i] = newRendered[i];
-        }
-
-        if (renderSeq != -1)
-        {
-            if (seqData)
-            {
-                api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, NOTE_COLORS[keyIndex]);
-            }
-            else
-            {
-                api->drawRect(keyX, renderSeqStart, CANVAS_WIDTH / 4, renderSeq - renderSeqStart + 1, COLOR_BLACK);
-            }
-        }
-
-        IngameButtonType buttonState = igbtn.get(buttonPressed(keyIndex));
-        if (handlingLongNote)
-        {
-            // printf("LNT %d\n",NMAP.notes[keyIndex].at(longNoteIndex).endtime - time);
-            // printf("EDT %d\n", NMAP.notes[keyIndex].at(longNoteIndex).endtime);
-            // printf("T %d\n", time);
-            if (buttonState == IngameButtonType::RELEASED)
-            {
-                int acc = calculateAcc(NMAP.notes[keyIndex].at(longNoteIndex).endtime - time);
-                if (acc == 0)
-                {
-                    accuracyViewer->setTargetAcc(0);
-                    health -= 10;
-                    noteRenderIndex = largest(noteRenderIndex, longNoteIndex + 1);
-                    combo = 0;
-                    printf("Missed long note end\n");
-                }
-                else
-                {
-                    accuracyViewer->setTargetAcc(100);
-                    noteRenderIndex = largest(noteRenderIndex, longNoteIndex + 1);
-                }
-                handlingLongNote = false;
-                printf("Handling long note end === RELEASED\n");
-            }
-            // printf("Handling long note\n");
-            return;
-        }
-
-        if (buttonState == IngameButtonType::JUST_PRESSED)
-        {
-            // get the most closest note
-            int closestNoteIndex = noteRenderIndex;
-            int closestNoteTime = 1234567890;
-            for (int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++)
-            {
-                int noteTime = NMAP.notes[keyIndex].at(i).time - time;
-                if ((noteTime) < (closestNoteTime))
-                {
-                    closestNoteTime = noteTime;
-                    closestNoteIndex = i;
-                }
-            }
-
-            if (closestNoteTime > _JUDGE_MAX_10_ + 100)
-                return;
-
-            if (NMAP.notes[keyIndex].at(closestNoteIndex).isHoldNote())
-            {
-                int acc = calculateAcc(closestNoteTime);
-                accuracyViewer->setTargetAcc(acc);
-                health += _HEALTH_BY_SCORE_[acc / 10];
-                if (acc == 0)
-                {
-                    // miss
-                    noteRenderIndex = largest(noteRenderIndex, closestNoteIndex + 1);
-                    combo = 0;
-                    printf("Missed long note start\n");
-                }
-                else
-                {
-                    handlingLongNote = true;
-                    longNoteIndex = closestNoteIndex;
-                    combo++;
-                }
-            }
-            else
-            {
-                int acc = calculateAcc(closestNoteTime);
-                accuracyViewer->setTargetAcc(acc);
-                health += _HEALTH_BY_SCORE_[acc / 10];
-                if (acc == 0)
-                {
-                    // miss
-                    noteRenderIndex = largest(noteRenderIndex, closestNoteIndex + 1);
-                    combo = 0;
-                    printf("Missed note\n");
-                }
-                else
-                {
-                    // hit
-                    noteRenderIndex = largest(noteRenderIndex, closestNoteIndex + 1);
-                    combo++;
-                }
-            }
         }
     }
 };
