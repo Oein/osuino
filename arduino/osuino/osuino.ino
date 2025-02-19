@@ -47,6 +47,8 @@ float _NOTE_Y_SPEED_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
 #define _JUDGE_MAX_20_ 159
 #define _JUDGE_MAX_10_ 177
 
+#define __DO_NOT_ANIMATE__ true
+
 float _HEALTH_BY_SCORE_[] = {
     -7,
     0.5, // 10,
@@ -390,6 +392,13 @@ public:
 
     bool update()
     {
+#ifdef __DO_NOT_ANIMATE__
+        if(now != target) {
+            now = target;
+            return true;
+        }
+        return false;
+#else
         float deltaTime = (float)this->deltaTime.deltaTime();
         if (now < target)
         {
@@ -410,6 +419,7 @@ public:
             return true;
         }
         return false;
+#endif
     }
 
     void set(int nTarget)
@@ -1029,7 +1039,7 @@ public:
                 api->drawRect(drawX, CANVAS_HEIGHT - 35, 30, 30, COLOR_BLACK);
                 api->drawText(drawX + 15, CANVAS_HEIGHT - 20, buttonKey[i], COLOR_WHITE);
                 // TODO: implement on arduino
-                api->drawTextTopLeft(drawX + 33, CANVAS_HEIGHT - 20, names[i], COLOR_WHITE);
+                api->drawTextTopLeft(drawX + 33, CANVAS_HEIGHT - 30, names[i], COLOR_WHITE);
             }
             drawX += btnWidth + 5;
         }
@@ -2057,22 +2067,29 @@ void updateSubcall() {
     }
 }
 
-float avgms = 0;
-
 void update()
 {
-    Timer t;
     updateSubcall();
-    if(t.deltaTime() == 0) return;
-    avgms = (avgms + t.deltaTime()) / 2;
-    printf("Update took %fms\n", avgms);
 }
 
 // MARK: - Arduino Entry Point
 
 void setup() {
   tft.begin();
+  Serial.begin(115200);
 }
 void loop() {
   update();
+  if(Serial.available() > 0) {
+    const char c = Serial.read();
+    if(c == 's') __buttonPressed__state__[0] = true;
+    if(c == 'd') __buttonPressed__state__[1] = true;
+    if(c == 'l') __buttonPressed__state__[2] = true;
+    if(c == 'k') __buttonPressed__state__[3] = true;
+    if(c == 'S') __buttonPressed__state__[0] = false;
+    if(c == 'D') __buttonPressed__state__[1] = false;
+    if(c == 'L') __buttonPressed__state__[2] = false;
+    if(c == 'K') __buttonPressed__state__[3] = false;
+    printf("Key state %d %d %d %d\n", __buttonPressed__state__[0], __buttonPressed__state__[1], __buttonPressed__state__[2], __buttonPressed__state__[3]);
+  }
 }

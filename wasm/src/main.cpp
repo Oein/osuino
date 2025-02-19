@@ -442,6 +442,13 @@ public:
 
     bool update()
     {
+#ifdef __DO_NOT_ANIMATE__
+        if(now != target) {
+            now = target;
+            return true;
+        }
+        return false;
+#else
         float deltaTime = (float)this->deltaTime.deltaTime();
         if (now < target)
         {
@@ -462,6 +469,7 @@ public:
             return true;
         }
         return false;
+#endif
     }
 
     void set(int nTarget)
