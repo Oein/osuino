@@ -23,6 +23,7 @@
 
 #define _ACCURACY_BASE_Y_ CANVAS_HEIGHT / 4 * 3 - 10
 #define _COMBO_BASE_Y_ CANVAS_HEIGHT / 2 - 100
+#define _LONG_NOTE_COMBO_STACK_MS_ 250
 
 const int __SELECT_MAP_COUNT__ = (CANVAS_HEIGHT - __SELECT_MAP_GAP__) / (__SELECT_MAP_HEIGHT__ + __SELECT_MAP_GAP__);
 const int __SELECT_PREV_MAPS__ = (__SELECT_MAP_COUNT__ - 1) / 2;
@@ -34,13 +35,12 @@ const int __SELECT_MAP_START_Y__ = 10;
 float _NOTE_SPEED_ = 500.0;
 // which means a note can be pressed 50ms before it shown on the screen
 // and 50ms after it shown on the screen
-float _NOTE_ALLOWANCE_ = 50.0;
 float _NOTE_START_Y_ = 0.0;
 float _NOTE_END_Y_ = CANVAS_HEIGHT - 50.0;
 float _NOTE_Y_RANGE_ = _NOTE_END_Y_ - _NOTE_START_Y_;
-float _NOTE_Y_SPEED_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
+float _NOTE_PIXEL_PER_MS_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
 
-#define _JUDEGE_MAX_100_ 41
+#define _JUDGE_MAX_100_ 41
 #define _JUDGE_MAX_90_ 54
 #define _JUDGE_MAX_80_ 75
 #define _JUDGE_MAX_70_ 96
@@ -50,6 +50,7 @@ float _NOTE_Y_SPEED_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
 #define _JUDGE_MAX_30_ 147
 #define _JUDGE_MAX_20_ 159
 #define _JUDGE_MAX_10_ 177
+#define _JUDGE_MAX_0_ CANVAS_HEIGHT / 2 * _NOTE_PIXEL_PER_MS_
 
 #define __DO_NOT_ANIMATE__ true
 #define __NO_DIE__ true
@@ -170,7 +171,7 @@ public:
 
     void drawRect(int x, int y, int width, int height, IColorType color)
     {
-        printf("drawRect(%d, %d, %d, %d, %d)\n", x, y, width, height, color);
+        // printf("drawRect(%d, %d, %d, %d, %d)\n", x, y, width, height, color);
         EM_ASM_({
             Module.ctx.fillStyle = 'rgb(' + ($4 >> 16) + ',' + (($4 >> 8) & 0xFF) + ',' + ($4 & 0xFF) + ')';
             Module.ctx.fillRect($0, $1, $2, $3); }, x, y, width, height, color);
@@ -1772,6 +1773,15 @@ public:
         targetAcc = acc;
         requested = true;
         timer.reset();
+
+        if(acc == 0) {
+            combo = 0;
+            health += _HEALTH_BY_SCORE_[0];
+            return;
+        }
+
+        combo++;
+        health += _HEALTH_BY_SCORE_[acc];
     }
 };
 
@@ -1795,9 +1805,15 @@ public:
         this->keyX = CANVAS_WIDTH / 4 * keyIndex;
     }
 
+    int processFrom = 0;
+
     void initlize()
     {
         noteRenderIndex = 0;
+        for(int i = 0; i < CANVAS_HEIGHT; i++)
+            rendered[i] = false;
+        processFrom = 0;
+        pressingLongNote = -1;
     }
 
     bool handlingLongNote;
@@ -1806,7 +1822,7 @@ public:
     int calculateAcc(int deltaTime)
     {
         int diff = abs(deltaTime);
-        if (diff < _JUDEGE_MAX_100_)
+        if (diff < _JUDGE_MAX_100_)
             return 100;
         if (diff < _JUDGE_MAX_90_)
             return 90;
@@ -1833,16 +1849,141 @@ public:
         false,
     };
 
+    void handleDraw(int from, int to, bool fill) {
+        if(from < 0) return;
+        if(to >= CANVAS_HEIGHT) return;
+
+        if(fill) {
+            api->drawRect(keyX, from, CANVAS_WIDTH / 4, to - from + 1, NOTE_COLORS[keyIndex]);
+        } else {
+            api->drawRect(keyX, from, CANVAS_WIDTH / 4, to - from + 1, COLOR_BLACK);
+        }
+    }
+
+    int pressingLongNote = -1;
+
+    void processAccu(int accu) {
+        accuracyViewer->setTargetAcc(accu);
+    }
+
+    int getAccuFromTime(int delta) {
+        int time = abs(delta);
+        if(time <= _JUDGE_MAX_100_) return 100;
+        if(time <= _JUDGE_MAX_90_) return 90;
+        if(time <= _JUDGE_MAX_80_) return 80;
+        if(time <= _JUDGE_MAX_70_) return 70;
+        if(time <= _JUDGE_MAX_60_) return 60;
+        if(time <= _JUDGE_MAX_50_) return 50;
+        if(time <= _JUDGE_MAX_40_) return 40;
+        if(time <= _JUDGE_MAX_30_) return 30;
+        if(time <= _JUDGE_MAX_20_) return 20;
+        if(time <= _JUDGE_MAX_10_) return 10;
+        return 0;
+    }
+
+    Timer lngNote;
+
+    void processKeypress(int leastDrawnIndex, int time) {
+        IngameButtonType btn = igbtn.get(buttonPressed(keyIndex));
+        while (leastDrawnIndex > processFrom)
+        {
+            // 그리고 있는것보다 더 뒤에 있는 노트가
+            // 사용자에의해 눌리지 않은 노트가 있다면
+            // 판정을 0으로 처리
+            processAccu(0);
+            if(longNoteIndex == processFrom) {
+                // 롱노트를 놓친 경우
+                longNoteIndex = -1;
+                printf("Line %d: Processing long note over\n", keyIndex);
+            } else {
+                printf("Line %d: note over\n", keyIndex);
+            }
+            processFrom++;
+        }
+        
+        if(longNoteIndex != -1) {
+            // 롱노트를 처리중
+            if(btn == IngameButtonType::RELEASED) {
+                // 롱노트를 처리를 마친 경우
+                int accu = getAccuFromTime(NMAP.notes[keyIndex].data[longNoteIndex].endtime - time);
+                processAccu(accu);
+
+                if(processFrom < longNoteIndex + 1) {
+                    // 처리할 노트를 롱노트 이후로 이동
+                    processFrom = longNoteIndex + 1;
+                }
+                longNoteIndex = -1;
+                return;
+            }
+
+            if(btn == IngameButtonType::HOLDING) {
+                // 롱노트를 계속 누르고 있는 경우
+                if(lngNote.deltaTime() > _LONG_NOTE_COMBO_STACK_MS_) {
+                    combo++;
+                    lngNote.reset();
+                }
+                return;
+            }
+        }
+
+        if (btn == IngameButtonType::RELEASED)
+        {
+            // 누르지 않은 경우
+            return;
+        }
+
+        // 무언가 새로히 눌린 경우
+        bool isSingleNote = NMAP.notes[keyIndex].data[processFrom].endtime == 0;
+        if (isSingleNote)
+        {
+            // 싱글 노트인 경우
+            int delta = NMAP.notes[keyIndex].data[processFrom].time - time;
+            if(delta > _JUDGE_MAX_0_) {
+                // 훨신 미래에 있는 노트인 경우
+                return;
+            }
+            int accu = getAccuFromTime(delta);
+            processAccu(accu);
+            if(accu == 0) {
+                printf("Line %d: Single note %d accu 0%%\n\n", keyIndex, delta);
+            }
+            processFrom++;
+            return;
+        }
+
+        // 롱노트인 경우
+        int delta = NMAP.notes[keyIndex].data[processFrom].time - time;
+        if(delta > _JUDGE_MAX_0_) {
+            // 훨신 미래에 있는 노트인 경우
+            return;
+        }
+        int accu = getAccuFromTime(delta);
+        processAccu(accu);
+        if(accu != 0) {
+            longNoteIndex = processFrom;
+            lngNote.reset();
+        }
+        else {
+            // 롱노트를 놓친 경우
+            processFrom++;
+            printf("Line %d: Long note %d accu 0%%\n\n", keyIndex, delta);
+        }
+
+        return;
+    }
+
     void render(int time)
     {
         bool newRendered[CANVAS_HEIGHT] = {
             false,
         };
 
+        int leaseDrawnIndex = -1;
+
         for(int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++) {
             bool isSingleNote = NMAP.notes[keyIndex].data[i].endtime == 0;
             if (isSingleNote) {
-                int renderY = _NOTE_END_Y_ - (time - NMAP.notes[keyIndex].data[i].time) * _NOTE_SPEED_;
+                int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].data[i].time - time) * _NOTE_PIXEL_PER_MS_;
                 if(renderY > CANVAS_HEIGHT) {
                     noteRenderIndex = i + 1;
                     break;
@@ -1854,17 +1995,20 @@ public:
                 renderY = renderY < 0 ? 0 : renderY;
                 for(int j = renderY; j < renderY + noteHight; j++)
                     newRendered[j] = true;
+                if(leaseDrawnIndex == -1) {
+                    leaseDrawnIndex = i;
+                }
                 continue;
             }
 
             // process long note
-            int renderY = _NOTE_END_Y_ - (time - NMAP.notes[keyIndex].data[i].endtime) * _NOTE_SPEED_;
-            int renderH = (time - NMAP.notes[keyIndex].data[i].time) * _NOTE_SPEED_;
+            int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].data[i].endtime - time) * _NOTE_PIXEL_PER_MS_;
+            int renderH = (NMAP.notes[keyIndex].data[i].endtime - NMAP.notes[keyIndex].data[i].time) * _NOTE_PIXEL_PER_MS_;
             if(renderY > CANVAS_HEIGHT) {
                 noteRenderIndex = i + 1;
                 break;
             }
-            if(renderY + renderH < 0) {
+            if(renderY + renderH <= 0) {
                 break;
             }
             if(renderY < 0) {
@@ -1876,7 +2020,45 @@ public:
             }
             for(int j = renderY; j < renderY + renderH; j++)
                 newRendered[j] = true;
+            if(leaseDrawnIndex == -1) {
+                leaseDrawnIndex = i;
+            }
         }
+
+        int seqStart = -1;
+        int seqEnd = -1;
+        bool seqData = false;
+        for(int i = 0; i < CANVAS_HEIGHT; i++) {
+            if(newRendered[i] != rendered[i]) {
+                rendered[i] = newRendered[i];
+                if(seqStart == -1) {
+                    seqData = newRendered[i];
+                    seqStart = i;
+                    seqEnd = i;
+                    continue;
+                }
+                if(seqData != newRendered[i]) {
+                    handleDraw(seqStart, seqEnd, seqData);
+                    seqStart = i;
+                    seqEnd = i;
+                    seqData = newRendered[i];
+                    continue;
+                }
+                seqEnd = i;
+                
+                continue;
+            }
+
+            if(seqStart != -1) {
+                handleDraw(seqStart, seqEnd, seqData);
+                seqStart = -1;
+                seqEnd = -1;
+                seqData = false;
+            }
+        }
+
+        handleDraw(seqStart, seqEnd, seqData);
+        processKeypress(leaseDrawnIndex, time);
     }
 };
 
@@ -2138,16 +2320,9 @@ void updateSubcall()
     }
 }
 
-float avgms = 0;
-
 void update()
 {
-    Timer t;
     updateSubcall();
-    if (t.deltaTime() == 0)
-        return;
-    avgms = (avgms + t.deltaTime()) / 2;
-    printf("Update took %fms\n", avgms);
 }
 
 // MARK: - Emscripten Entry Point
