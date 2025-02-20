@@ -32,7 +32,8 @@
     "future": "cpp",
     "istream": "cpp",
     "locale": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "__locale": "cpp"
   },
   "editor.formatOnSave": false,
   "typescript.tsdk": "electron/.yarn/sdks/typescript/lib",
