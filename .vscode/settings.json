@@ -33,7 +33,8 @@
     "istream": "cpp",
     "locale": "cpp",
     "variant": "cpp",
-    "__locale": "cpp"
+    "__locale": "cpp",
+    "*.inc": "cpp"
   },
   "editor.formatOnSave": false,
   "typescript.tsdk": "electron/.yarn/sdks/typescript/lib",

@@ -5,24 +5,30 @@
 #include <emscripten/html5.h>
 #include <string.h>
 
-// https://github.com/codewitch-honey-crisis/htcw_zip/blob/master/examples/demo/src/main.cpp
-
-// MARK: - Constants
-
+// MARK: - Env
+#define __DO_NOT_ANIMATE__ true
+#define __NO_DIE__ true
 #define IColorType int
 #define IStringType std::string
 #define CANVAS_WIDTH 320
 #define CANVAS_HEIGHT 480
 
+// MARK: - Constants
+
 #define __INTRO_SCENE_MS_ 100
 #define __INTRO_SCENE_TRIANGLE_NOSPAWN_MS_ 1450 - 50
 #define __INTRO_SCENE_END_MS_ 1600
 
+// 맵 크기
 #define __SELECT_MAP_HEIGHT__ 50
+// 맵 선택창 간격
 #define __SELECT_MAP_GAP__ 10
 
+// 정확도 Y 좌표
 #define _ACCURACY_BASE_Y_ CANVAS_HEIGHT / 4 * 3 - 10
+// 콤보 Y 좌표
 #define _COMBO_BASE_Y_ CANVAS_HEIGHT / 2 - 100
+// 롱노트 콤보 스텍 주기
 #define _LONG_NOTE_COMBO_STACK_MS_ 250
 
 const int __SELECT_MAP_COUNT__ = (CANVAS_HEIGHT - __SELECT_MAP_GAP__) / (__SELECT_MAP_HEIGHT__ + __SELECT_MAP_GAP__);
@@ -30,11 +36,7 @@ const int __SELECT_PREV_MAPS__ = (__SELECT_MAP_COUNT__ - 1) / 2;
 const int __SELECT_NEXT_MAPS__ = (__SELECT_MAP_COUNT__ - __SELECT_PREV_MAPS__ - 1);
 const int __SELECT_MAP_START_Y__ = 10;
 
-// which means a note shown on the screen for 300ms
-// after 300ms it should be pressed
 float _NOTE_SPEED_ = 400.0;
-// which means a note can be pressed 50ms before it shown on the screen
-// and 50ms after it shown on the screen
 
 #define _JUDGE_MAX_100_ 41
 #define _JUDGE_MAX_90_ 54
@@ -51,14 +53,16 @@ float _NOTE_START_Y_ = 0.0;
 float _NOTE_END_Y_ = CANVAS_HEIGHT - 80.0;
 float _NOTE_Y_RANGE_ = _NOTE_END_Y_ - _NOTE_START_Y_;
 float _NOTE_PIXEL_PER_MS_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
-float _NOTE_END_ZONE_HEIGHT_ = CANVAS_HEIGHT - _NOTE_END_Y_;
-float _NOTE_DRAW_ALLOWANCE_ = _JUDGE_MAX_50_;
+
+// single note 높이
+float _SINGLE_NOTE_HEIGHT_ = 20;
+
+// late 노트 인식 범위
+float _NOTE_LATE_ALLOWANCE_ = _JUDGE_MAX_50_;
+// 노트를 얼마나 내려오기 전까지 무시할 것인가
+float _NOTE_IGNORE_DELTA_ = _NOTE_Y_RANGE_ / 3 * 2 * _NOTE_PIXEL_PER_MS_;
 
 #define _JUDGE_MAX_0_ CANVAS_HEIGHT / 2 * _NOTE_PIXEL_PER_MS_
-
-#define __DO_NOT_ANIMATE__ true
-#define __NO_DIE__ true
-float _SINGLE_NOTE_HIEGHT_ = 20;
 
 float _HEALTH_BY_SCORE_[] = {
     -7,
@@ -650,13 +654,7 @@ class OSUNote_wihtoutcol
 {
 public:
     int time;
-    int type;
     int endtime;
-
-    bool isHoldNote()
-    {
-        return endtime;
-    }
 };
 
 enum OSUFileReadingState
@@ -902,9 +900,13 @@ private:
             }
             else
             {
+                if(note.endtime && note.time > note.endtime) {
+                    int oldTime = note.time;
+                    note.time = note.endtime;
+                    note.endtime = oldTime;
+                }
                 notes[note.col].push_back({
                     note.time,
-                    note.type,
                     note.endtime,
                 });
             }
@@ -1485,6 +1487,7 @@ IVector<IVector<OSUFile>> _GLOBAL_MAPS_SD_;
 
 #define MP(x, y) _GLOBAL_MAPS_SD_.data[x].data[y]
 #define NMAP MP(requestedPlaymap.cursor, requestedPlaymap.subcursor)
+#define NOTE(key, index) NMAP.notes[key].data[index]
 
 class TwoCursor
 {
@@ -1815,8 +1818,12 @@ public:
     int keyIndex = 0;
     int keyX = 0;
 
-    // which menas notes have to be rendered from index of `noteRenderIndex`
-    int noteRenderIndex = 0;
+    int renderFrom = 0;
+
+    int processFrom = 0;
+    int processingLongNoteIndex = -1;
+
+    Timer longNoteCombo;
 
     IngameLineHandler(CnavasAPI *api, int keyIndex)
     {
@@ -1825,19 +1832,14 @@ public:
         this->keyX = CANVAS_WIDTH / 4 * keyIndex;
     }
 
-    int processFrom = 0;
-
     void initlize()
     {
-        noteRenderIndex = 0;
         for(int i = 0; i < CANVAS_HEIGHT; i++)
             rendered[i] = false;
+        renderFrom = 0;
         processFrom = 0;
-        pressingLongNote = -1;
+        processingLongNoteIndex = -1;
     }
-
-    bool handlingLongNote;
-    int longNoteIndex = -1;
 
     int calculateAcc(int deltaTime)
     {
@@ -1880,8 +1882,6 @@ public:
         }
     }
 
-    int pressingLongNote = -1;
-
     void processAccu(int accu) {
         accuracyViewer->setTargetAcc(accu);
     }
@@ -1901,157 +1901,137 @@ public:
         return 0;
     }
 
-    Timer lngNote;
+    void processLongNote(int time, IngameButtonType btn) {
+        // 롱노트 처리 중인 상태임
 
-    void processKeypress(int leastDrawnIndex, int time) {
-        IngameButtonType btn = igbtn.get(buttonPressed(keyIndex));
-        
-        if(longNoteIndex != -1) {
-            // 롱노트를 처리중
-            if(btn == IngameButtonType::RELEASED) {
-                // 롱노트를 처리를 마친 경우
-                int accu = getAccuFromTime(NMAP.notes[keyIndex].data[longNoteIndex].endtime - time);
-                processAccu(accu);
-                longNoteIndex = -1;
-                printf("Line %d: Long note processed with accu %d%%\n", keyIndex, accu);
-                if(processFrom < longNoteIndex) processFrom = longNoteIndex;
-                return;
-            }
-
-            if(btn == IngameButtonType::HOLDING) {
-                // 롱노트를 계속 누르고 있는 경우
-                if(lngNote.deltaTime() > _LONG_NOTE_COMBO_STACK_MS_) {
-                    combo++;
-                    printf("Line %d: Long note combo stack\n", keyIndex);
-                    lngNote.reset();
-                }
-                if(leastDrawnIndex > longNoteIndex) {
-                    // 롱노트가 화면에 그려지지 않은 경우
-                    // 판정을 0으로 처리
-                    processAccu(0);
-                    longNoteIndex = -1;
-                    printf("Line %d: Long note missed\n", keyIndex);
-                    return;
-                }
-                return;
-            }
-        }
-
-
-        while (leastDrawnIndex > processFrom)
-        {
-            // 그리고 있는것보다 더 뒤에 있는 노트가
-            // 사용자에의해 눌리지 않은 노트가 있다면
-            // 판정을 0으로 처리
+        int noteDeleteTime = NOTE(keyIndex, processingLongNoteIndex).endtime + _NOTE_LATE_ALLOWANCE_;
+        if(noteDeleteTime < time) {
+            // 롱노트가 이미 지나감
             processAccu(0);
-            printf("Line %d: note over screen LDI %d > PF %d | isLong %d\n", keyIndex, leastDrawnIndex, processFrom, NMAP.notes[keyIndex].data[processFrom].endtime != 0);
-            processFrom++;
-        }
-
-        if (btn != IngameButtonType::JUST_PRESSED)
-        {
-            // 누르지 않은 경우
+            processFrom = processingLongNoteIndex + 1;
+            processingLongNoteIndex = -1;
+            printf("Line %d: Long note missed\n", keyIndex);
             return;
         }
 
-        // 무언가 새로히 눌린 경우
-        bool isSingleNote = NMAP.notes[keyIndex].data[processFrom].endtime == 0;
-        if (isSingleNote)
-        {
-            // 싱글 노트인 경우
-            int delta = NMAP.notes[keyIndex].data[processFrom].time - time;
-            if(delta > _JUDGE_MAX_0_) {
-                // 훨신 미래에 있는 노트인 경우
-                return;
+        int delta = NOTE(keyIndex, processingLongNoteIndex).endtime - time;
+        if(btn == IngameButtonType::HOLDING) {
+            // 롱노트를 계속 누르고 있음
+            if(longNoteCombo.deltaTime() > _LONG_NOTE_COMBO_STACK_MS_) {
+                longNoteCombo.reset();
+                combo++;
+            }
+            return;
+        }
+
+        if(btn == IngameButtonType::RELEASED) {
+            // 롱노트를 놓음
+            processAccu(getAccuFromTime(delta));
+            processFrom = processingLongNoteIndex + 1;
+            processingLongNoteIndex = -1;
+            return;
+        }
+    }
+
+    void processKeypress(int time) {
+        IngameButtonType btn = igbtn.get(buttonPressed(keyIndex));
+        if(processingLongNoteIndex != -1) return processLongNote(time, btn);
+
+        // 아직 아무것도 관여되어있지 않음.
+        for(int i = processFrom; i < NMAP.notes[keyIndex].size(); i++) {
+            bool isLongNote = NOTE(keyIndex, i).endtime > 0;
+            if(NOTE(keyIndex, i).time > time + CANVAS_HEIGHT * _NOTE_PIXEL_PER_MS_) {
+                // 아직 노트가 안나왔음
+                break;
+            }
+
+            int noteDeleteTime = (isLongNote ? NOTE(keyIndex, i).endtime : NOTE(keyIndex, i).time) + _NOTE_LATE_ALLOWANCE_;
+            if(noteDeleteTime < time) {
+                // 노트가 이미 지나감
+                processAccu(0);
+                processFrom = i + 1;
+                printf("Line %d: Note missed\n", keyIndex);
+                continue;
+            }
+
+            // 노트를 눌르지 않을경우 아무 처리도 하지 않음
+            if(btn != IngameButtonType::JUST_PRESSED) continue;
+
+            int delta = NOTE(keyIndex, i).time - time;
+            if(delta > _NOTE_IGNORE_DELTA_) {
+                // 노트가 아직 너무 먼 곳에 있음
+                break;
             }
             int accu = getAccuFromTime(delta);
-            processAccu(accu);
-            if(accu == 0) {
-                printf("Line %d: Single note %d accu 0%%\n", keyIndex, delta);
+            if(isLongNote) {
+                if(accu == 0) {
+                    // 롱노트를 놓침
+                    processAccu(0);
+                    processFrom = i + 1;
+                    break;
+                }
+                // 롱노트를 누름
+                processAccu(accu);
+                processingLongNoteIndex = i;
+                longNoteCombo.reset();
+                break;
             }
-            processFrom++;
-            return;
-        }
 
-        // 롱노트인 경우
-        int delta = NMAP.notes[keyIndex].data[processFrom].time - time;
-        if(delta > _JUDGE_MAX_0_) {
-            // 훨신 미래에 있는 노트인 경우
-            return;
+            // single note
+            processAccu(accu);
+            // 이번 틱에서 버튼 누름은 처리했기에 다음 노트까지 신경을 쓰지 않음
+            processFrom = i + 1;
+            break;
         }
-        int accu = getAccuFromTime(delta);
-        
-        processAccu(accu);
-        if(accu != 0) {
-            longNoteIndex = processFrom;
-            lngNote.reset();
-        }
-        else {
-            // 롱노트를 놓친 경우
-            printf("Line %d: Long note delta %dms accu 0%%\n", keyIndex, delta);
-        }
-
-        processFrom++;
-
-        return;
     }
 
     void render(int time)
     {
+        processKeypress(time);
+
         bool newRendered[CANVAS_HEIGHT] = {
             false,
         };
 
-        int leaseDrawnIndex = -1;
+        for(int i = renderFrom;i < NMAP.notes[keyIndex].size(); i++) {
+            bool isLongNote = NOTE(keyIndex, i).endtime > 0;
 
-        for(int i = noteRenderIndex; i < NMAP.notes[keyIndex].size(); i++) {
-            bool isSingleNote = NMAP.notes[keyIndex].data[i].endtime == 0;
-            if (isSingleNote) {
-                int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].data[i].time - time) * _NOTE_PIXEL_PER_MS_;
-                if(NMAP.notes[keyIndex].data[i].time + _NOTE_DRAW_ALLOWANCE_ < time) {
-                    noteRenderIndex = i + 1;
-                    printf("Line %d: Single note disapear by y >= CANVAS_HEIGHT, i %d y %d\n", keyIndex, i, renderY);
-                    continue;
-                }
-                if(renderY + _SINGLE_NOTE_HIEGHT_ < 0) {
-                    break;
-                }
-                int noteHight = renderY < 0 ? renderY + _SINGLE_NOTE_HIEGHT_ : _SINGLE_NOTE_HIEGHT_;
-                renderY = renderY < 0 ? 0 : renderY;
-                for(int j = renderY; j < renderY + noteHight; j++)
-                    newRendered[j] = true;
-                if(leaseDrawnIndex == -1) {
-                    leaseDrawnIndex = i;
-                }
-                continue;
+            // single note
+            int noteY = _NOTE_END_Y_ - (NOTE(keyIndex, i).time - time) * _NOTE_PIXEL_PER_MS_;
+            int noteH = _SINGLE_NOTE_HEIGHT_;
+
+            if(isLongNote) {
+                noteY = _NOTE_END_Y_ - (NOTE(keyIndex, i).endtime - time) * _NOTE_PIXEL_PER_MS_;
+                noteH = (NOTE(keyIndex, i).endtime - NOTE(keyIndex, i).time) * _NOTE_PIXEL_PER_MS_;
             }
 
-            // process long note
-            int renderY = _NOTE_END_Y_ - (NMAP.notes[keyIndex].data[i].endtime - time) * _NOTE_PIXEL_PER_MS_;
-            int renderH = (NMAP.notes[keyIndex].data[i].endtime - NMAP.notes[keyIndex].data[i].time) * _NOTE_PIXEL_PER_MS_;
-            if(renderY + renderH <= 0) {
+            if(noteY + noteH <= 0) {
+                // 노트의 끝이 화면에 들어오지 않음
                 break;
             }
-            if(renderY < 0) {
-                renderH += renderY;
-                renderY = 0;
-            }
-            if(renderY + renderH >= CANVAS_HEIGHT) {
-                renderH = CANVAS_HEIGHT - renderY;
+
+            if(noteY < 0) {
+                // 노트가 화면 위에 걸침
+                noteH += noteY;
+                noteY = 0;
             }
 
-            if(NMAP.notes[keyIndex].data[i].endtime + _NOTE_DRAW_ALLOWANCE_ < time) {
-                noteRenderIndex = i + 1;
-                int origy = _NOTE_END_Y_ - (NMAP.notes[keyIndex].data[i].time - time) * _NOTE_PIXEL_PER_MS_;
-                int origH = (NMAP.notes[keyIndex].data[i].endtime - NMAP.notes[keyIndex].data[i].time) * _NOTE_PIXEL_PER_MS_;
-                printf("Line %d: Long note disapear by h == 0, i %d y %d h %d\n", keyIndex, i, origy, origH);
+            if(noteY >= CANVAS_HEIGHT) {
+                // 노트가 화면 밖에 있음
+                renderFrom = i + 1;
                 continue;
             }
 
-            for(int j = renderY; j < renderY + renderH; j++)
+            if(noteY + noteH >= CANVAS_HEIGHT) {
+                // 노트가 화면 아래에 걸침
+                noteH = CANVAS_HEIGHT - noteY;
+            }
+
+            assert(noteY >= 0 && noteY < CANVAS_HEIGHT);
+            assert(noteH > 0 && noteY + noteH <= CANVAS_HEIGHT);
+
+            for(int j = noteY; j < noteY + noteH && j < CANVAS_HEIGHT; j++) {
                 newRendered[j] = true;
-            if(leaseDrawnIndex == -1) {
-                leaseDrawnIndex = i;
             }
         }
 
@@ -2088,7 +2068,6 @@ public:
         }
 
         handleDraw(seqStart, seqEnd, seqData);
-        processKeypress(leaseDrawnIndex, time);
     }
 };
 
@@ -2114,9 +2093,10 @@ public:
 
     void render()
     {
+        int deltaTime = this->timer.deltaTime();
         for (int i = 0; i < 4; i++)
         {
-            lineHandlers[i]->render(timer.deltaTime());
+            lineHandlers[i]->render(deltaTime);
         }
 
         // 판정선 그리기
@@ -2294,7 +2274,7 @@ public:
 // MARK: - Main Data Structures
 
 CnavasAPI api;
-IntroScene introScene(&api);
+IntroScene *introScene = new IntroScene(&api);
 TitleScene titleScene(&api);
 SelectScene selectScene(&api);
 IngameScene ingameScene(&api);
@@ -2337,9 +2317,11 @@ void updateSubcall()
 
     if (currentScene == Scene::Intro)
     {
-        introScene.update();
-        if (introScene.keyframes.deltaTime() > __INTRO_SCENE_END_MS_)
+        introScene->update();
+        if (introScene->keyframes.deltaTime() > __INTRO_SCENE_END_MS_) {
             currentScene = Scene::Title;
+            delete introScene;
+        }
         return;
     }
     if (currentScene == Scene::Title)

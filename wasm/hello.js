@@ -842,22 +842,22 @@ async function createWasm() {
 // === Body ===
 
 var ASM_CONSTS = {
-  476100: ($0, $1, $2, $3) => { Module.k0 = document.getElementById("k0"); Module.k1 = document.getElementById("k1"); Module.k2 = document.getElementById("k2"); Module.k3 = document.getElementById("k3"); Module.k0.style.background = $0 ? "red" : "black"; Module.k1.style.background = $1 ? "red" : "black"; Module.k2.style.background = $2 ? "red" : "black"; Module.k3.style.background = $3 ? "red" : "black"; },  
- 476480: () => { Module.canvas = document.getElementById('canvas'); Module.canvas.width = 320; Module.canvas.height = 480; Module.canvas.style.backgroundColor = 'black'; Module.ctx = Module.canvas.getContext('2d'); },  
- 476678: () => { Module.ctx.clearRect(0, 0, Module.canvas.width, Module.canvas.height); },  
- 476749: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 477134: ($0, $1, $2, $3, $4) => { Module.ctx.fillStyle = 'rgb(' + ($4 >> 16) + ',' + (($4 >> 8) & 0xFF) + ',' + ($4 & 0xFF) + ')'; Module.ctx.fillRect($0, $1, $2, $3); },  
- 477272: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 477657: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 478184: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
- 478522: ($0, $1, $2, $3) => { Module.ctx.font = '10pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
- 478860: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 479245: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.fillStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.fill(); },  
- 479470: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.strokeStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.closePath(); Module.ctx.stroke(); },  
- 479723: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 480108: ($0, $1, $2, $3) => { Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.arc($0, $1, $2, 0, 2 * Math.PI); Module.ctx.fill(); },  
- 480296: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 480681: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }
+  475860: ($0, $1, $2, $3) => { Module.k0 = document.getElementById("k0"); Module.k1 = document.getElementById("k1"); Module.k2 = document.getElementById("k2"); Module.k3 = document.getElementById("k3"); Module.k0.style.background = $0 ? "red" : "black"; Module.k1.style.background = $1 ? "red" : "black"; Module.k2.style.background = $2 ? "red" : "black"; Module.k3.style.background = $3 ? "red" : "black"; },  
+ 476240: () => { Module.canvas = document.getElementById('canvas'); Module.canvas.width = 320; Module.canvas.height = 480; Module.canvas.style.backgroundColor = 'black'; Module.ctx = Module.canvas.getContext('2d'); },  
+ 476438: () => { Module.ctx.clearRect(0, 0, Module.canvas.width, Module.canvas.height); },  
+ 476509: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 476894: ($0, $1, $2, $3, $4) => { Module.ctx.fillStyle = 'rgb(' + ($4 >> 16) + ',' + (($4 >> 8) & 0xFF) + ',' + ($4 & 0xFF) + ')'; Module.ctx.fillRect($0, $1, $2, $3); },  
+ 477032: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 477417: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 477944: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
+ 478282: ($0, $1, $2, $3) => { Module.ctx.font = '10pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
+ 478620: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 479005: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.fillStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.fill(); },  
+ 479230: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.strokeStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.closePath(); Module.ctx.stroke(); },  
+ 479483: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 479868: ($0, $1, $2, $3) => { Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.arc($0, $1, $2, 0, 2 * Math.PI); Module.ctx.fill(); },  
+ 480056: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 480441: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }
 };
 
 // end include: preamble.js
@@ -946,6 +946,82 @@ var ASM_CONSTS = {
         err(text);
       }
     };
+
+  var UTF8Decoder = typeof TextDecoder != 'undefined' ? new TextDecoder() : undefined;
+  
+    /**
+     * Given a pointer 'idx' to a null-terminated UTF8-encoded string in the given
+     * array that contains uint8 values, returns a copy of that string as a
+     * Javascript String object.
+     * heapOrArray is either a regular array, or a JavaScript typed array view.
+     * @param {number=} idx
+     * @param {number=} maxBytesToRead
+     * @return {string}
+     */
+  var UTF8ArrayToString = (heapOrArray, idx = 0, maxBytesToRead = NaN) => {
+      var endIdx = idx + maxBytesToRead;
+      var endPtr = idx;
+      // TextDecoder needs to know the byte length in advance, it doesn't stop on
+      // null terminator by itself.  Also, use the length info to avoid running tiny
+      // strings through TextDecoder, since .subarray() allocates garbage.
+      // (As a tiny code save trick, compare endPtr against endIdx using a negation,
+      // so that undefined/NaN means Infinity)
+      while (heapOrArray[endPtr] && !(endPtr >= endIdx)) ++endPtr;
+  
+      if (endPtr - idx > 16 && heapOrArray.buffer && UTF8Decoder) {
+        return UTF8Decoder.decode(heapOrArray.subarray(idx, endPtr));
+      }
+      var str = '';
+      // If building with TextDecoder, we have already computed the string length
+      // above, so test loop end condition against that
+      while (idx < endPtr) {
+        // For UTF8 byte structure, see:
+        // http://en.wikipedia.org/wiki/UTF-8#Description
+        // https://www.ietf.org/rfc/rfc2279.txt
+        // https://tools.ietf.org/html/rfc3629
+        var u0 = heapOrArray[idx++];
+        if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue; }
+        var u1 = heapOrArray[idx++] & 63;
+        if ((u0 & 0xE0) == 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue; }
+        var u2 = heapOrArray[idx++] & 63;
+        if ((u0 & 0xF0) == 0xE0) {
+          u0 = ((u0 & 15) << 12) | (u1 << 6) | u2;
+        } else {
+          if ((u0 & 0xF8) != 0xF0) warnOnce('Invalid UTF-8 leading byte ' + ptrToString(u0) + ' encountered when deserializing a UTF-8 string in wasm memory to a JS string!');
+          u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
+        }
+  
+        if (u0 < 0x10000) {
+          str += String.fromCharCode(u0);
+        } else {
+          var ch = u0 - 0x10000;
+          str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF));
+        }
+      }
+      return str;
+    };
+  
+    /**
+     * Given a pointer 'ptr' to a null-terminated UTF8-encoded string in the
+     * emscripten HEAP, returns a copy of that string as a Javascript String object.
+     *
+     * @param {number} ptr
+     * @param {number=} maxBytesToRead - An optional length that specifies the
+     *   maximum number of bytes to read. You can omit this parameter to scan the
+     *   string until the first 0 byte. If maxBytesToRead is passed, and the string
+     *   at [ptr, ptr+maxBytesToReadr[ contains a null byte in the middle, then the
+     *   string will cut short at that byte index (i.e. maxBytesToRead will not
+     *   produce a string of exact length [ptr, ptr+maxBytesToRead[) N.B. mixing
+     *   frequent uses of UTF8ToString() with and without maxBytesToRead may throw
+     *   JS JIT optimizations off, so it is worth to consider consistently using one
+     * @return {string}
+     */
+  var UTF8ToString = (ptr, maxBytesToRead) => {
+      assert(typeof ptr == 'number', `UTF8ToString expects a number (got ${typeof ptr})`);
+      return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : '';
+    };
+  var ___assert_fail = (condition, filename, line, func) =>
+      abort(`Assertion failed: ${UTF8ToString(condition)}, at: ` + [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']);
 
   class ExceptionInfo {
       // excPtr - Thrown object pointer to wrap. Metadata pointer is calculated from it.
@@ -1207,79 +1283,6 @@ var ASM_CONSTS = {
       },
   };
   
-  var UTF8Decoder = typeof TextDecoder != 'undefined' ? new TextDecoder() : undefined;
-  
-    /**
-     * Given a pointer 'idx' to a null-terminated UTF8-encoded string in the given
-     * array that contains uint8 values, returns a copy of that string as a
-     * Javascript String object.
-     * heapOrArray is either a regular array, or a JavaScript typed array view.
-     * @param {number=} idx
-     * @param {number=} maxBytesToRead
-     * @return {string}
-     */
-  var UTF8ArrayToString = (heapOrArray, idx = 0, maxBytesToRead = NaN) => {
-      var endIdx = idx + maxBytesToRead;
-      var endPtr = idx;
-      // TextDecoder needs to know the byte length in advance, it doesn't stop on
-      // null terminator by itself.  Also, use the length info to avoid running tiny
-      // strings through TextDecoder, since .subarray() allocates garbage.
-      // (As a tiny code save trick, compare endPtr against endIdx using a negation,
-      // so that undefined/NaN means Infinity)
-      while (heapOrArray[endPtr] && !(endPtr >= endIdx)) ++endPtr;
-  
-      if (endPtr - idx > 16 && heapOrArray.buffer && UTF8Decoder) {
-        return UTF8Decoder.decode(heapOrArray.subarray(idx, endPtr));
-      }
-      var str = '';
-      // If building with TextDecoder, we have already computed the string length
-      // above, so test loop end condition against that
-      while (idx < endPtr) {
-        // For UTF8 byte structure, see:
-        // http://en.wikipedia.org/wiki/UTF-8#Description
-        // https://www.ietf.org/rfc/rfc2279.txt
-        // https://tools.ietf.org/html/rfc3629
-        var u0 = heapOrArray[idx++];
-        if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue; }
-        var u1 = heapOrArray[idx++] & 63;
-        if ((u0 & 0xE0) == 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue; }
-        var u2 = heapOrArray[idx++] & 63;
-        if ((u0 & 0xF0) == 0xE0) {
-          u0 = ((u0 & 15) << 12) | (u1 << 6) | u2;
-        } else {
-          if ((u0 & 0xF8) != 0xF0) warnOnce('Invalid UTF-8 leading byte ' + ptrToString(u0) + ' encountered when deserializing a UTF-8 string in wasm memory to a JS string!');
-          u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
-        }
-  
-        if (u0 < 0x10000) {
-          str += String.fromCharCode(u0);
-        } else {
-          var ch = u0 - 0x10000;
-          str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF));
-        }
-      }
-      return str;
-    };
-  
-    /**
-     * Given a pointer 'ptr' to a null-terminated UTF8-encoded string in the
-     * emscripten HEAP, returns a copy of that string as a Javascript String object.
-     *
-     * @param {number} ptr
-     * @param {number=} maxBytesToRead - An optional length that specifies the
-     *   maximum number of bytes to read. You can omit this parameter to scan the
-     *   string until the first 0 byte. If maxBytesToRead is passed, and the string
-     *   at [ptr, ptr+maxBytesToReadr[ contains a null byte in the middle, then the
-     *   string will cut short at that byte index (i.e. maxBytesToRead will not
-     *   produce a string of exact length [ptr, ptr+maxBytesToRead[) N.B. mixing
-     *   frequent uses of UTF8ToString() with and without maxBytesToRead may throw
-     *   JS JIT optimizations off, so it is worth to consider consistently using one
-     * @return {string}
-     */
-  var UTF8ToString = (ptr, maxBytesToRead) => {
-      assert(typeof ptr == 'number', `UTF8ToString expects a number (got ${typeof ptr})`);
-      return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : '';
-    };
   var maybeCStringToJsString = (cString) => {
       // "cString > 2" checks if the input is a number, and isn't of the special
       // values we accept here, EMSCRIPTEN_EVENT_TARGET_* (which map to 0, 1, 2).
@@ -1919,6 +1922,8 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
 }
 var wasmImports = {
+  /** @export */
+  __assert_fail: ___assert_fail,
   /** @export */
   __cxa_throw: ___cxa_throw,
   /** @export */
