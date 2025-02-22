@@ -1951,7 +1951,7 @@ public:
                 processAccu(0);
                 processFrom = i + 1;
                 printf("Line %d: Note missed\n", keyIndex);
-                continue;
+                break;
             }
 
             // 노트를 눌르지 않을경우 아무 처리도 하지 않음
