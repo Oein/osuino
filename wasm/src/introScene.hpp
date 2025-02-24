@@ -1,17 +1,6 @@
-// MARK: - Scenes define
-
-enum Scene
-{
-    Intro,
-    Title,
-    Select,
-    Ingame,
-    Result,
-    Options,
-    Download,
-};
-
-Scene currentScene = Scene::Intro;
+#define __INTRO_SCENE_MS_ 100
+#define __INTRO_SCENE_TRIANGLE_NOSPAWN_MS_ 1450 - 50
+#define __INTRO_SCENE_END_MS_ 1600
 
 // MARK: - Scene: Intro
 

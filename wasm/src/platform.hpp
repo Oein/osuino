@@ -1,3 +1,5 @@
+#define IColorType int
+#define IStringType std::string
 
 IColorType rgb(int r, int g, int b)
 {

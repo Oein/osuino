@@ -5,11 +5,7 @@
 #include <emscripten/html5.h>
 #include <string.h>
 
-// MARK: - Env
-#define __DO_NOT_ANIMATE__ true
-#define __NO_DIE__ true
-#define IColorType int
-#define IStringType std::string
+// MARK: - Environment
 #define CANVAS_WIDTH 320
 #define CANVAS_HEIGHT 480
 
@@ -25,12 +21,12 @@
 #define _PRINTF_INFO_
 // 노트 판정 시간을 출력합니다.
 #undef _PRINT_EARLY_LATE_MS_
+// 죽지 않습니다.
+#undef __NO_DIE__
+// 모든 동작 사이 애니메이션을 끕니다, 아두이노에서는 필수 입니다.
+#define __DO_NOT_ANIMATE__
 
 // MARK: - Constants
-
-#define __INTRO_SCENE_MS_ 100
-#define __INTRO_SCENE_TRIANGLE_NOSPAWN_MS_ 1450 - 50
-#define __INTRO_SCENE_END_MS_ 1600
 
 // 맵 크기
 #define __SELECT_MAP_HEIGHT__ 50
@@ -90,6 +86,21 @@ float _HEALTH_BY_SCORE_[] = {
     1.3,  // 90
     1.5,  // 100
 };
+
+// MARK: - Scenes define
+
+enum Scene
+{
+    Intro,
+    Title,
+    Select,
+    Ingame,
+    Result,
+    Options,
+    Download,
+};
+
+Scene currentScene = Scene::Intro;
 
 // MARK: - Libraries
 
