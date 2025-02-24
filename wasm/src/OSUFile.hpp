@@ -1,348 +1,229 @@
-
-class OSUNote
-{
+class StringParser {
 public:
-    int col;
-    int time;
-    int type;
-    int endtime;
-};
-
-class OSUNote_wihtoutcol
-{
-public:
-    int time;
-    int endtime;
-};
-
-enum OSUFileReadingState
-{
-    FormatVersion,
-    AnyHitObjectORMETA,
-    HitObjects,
-    HitObjects_X,
-    HitObjects_Y,
-    HitObjects_Time,
-    HitObjects_Type,
-    HitObjects_HitSound,
-    HitObjects_EndTime,
-    HitObjects_HitSample,
-    HitObjects_NEWLINE,
-};
-
-class OSUFile
-{
-private:
-    OSUFileReadingState rstate;
-    bool load_line(IStringType line)
-    {
-        // printf("Line: %s\n", line.c_str());
-        if (rstate == OSUFileReadingState::FormatVersion)
-        {
-            // check starts with "osu file format"
-            IStringType format = "osu file format v";
-            for (int i = 0; i < format.length(); i++)
-            {
-                if (line[i] != format[i])
-                {
-                    printf("Format error\n");
-                    return false;
+    IStringType content;
+    int cursor = 0;
+    int base64ToNumber(const IStringType base64) {
+        const IStringType base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        int num = 0;
+        int power = 1;
+    
+        for (int i = 0; i < base64.length(); i++) {
+            if(base64[i] == '_') {
+                continue;
+            }
+            int index = -1;
+            for(int j = 0; j < base.length(); ++j) {
+                if (base[j] == base64[i]) {
+                    index = j;
+                    break;
                 }
             }
-            rstate = OSUFileReadingState::AnyHitObjectORMETA;
-            // printf("Format version: %s\n", line.substr(format.length()).c_str());
-
-            return true;
+            if (index != -1) {
+                num += index * power;
+                power *= 64;
+            } else {
+                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                return -1; // Return an error code for invalid input
+            }
         }
-        if (rstate == OSUFileReadingState::AnyHitObjectORMETA)
-        {
-            IStringType format1 = "Title:";
-            IStringType format2 = "Version:";
-            IStringType format3 = "[HitObjects]";
-            IStringType format4 = "BeatmapSetID:";
-            IStringType format5 = "OverallDifficulty:";
-            IStringType format6 = "Artist:";
-
-            bool match1 = true;
-            for (int i = 0; i < format1.length(); i++)
-            {
-                if (line[i] != format1[i])
-                {
-                    match1 = false;
+    
+        return num;
+    }
+    
+    unsigned long base64ToLargeNumber(const IStringType base64) {
+        const IStringType base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        unsigned long num = 0;
+        unsigned long power = 1;
+    
+        for (int i = 0; i < base64.length(); i++) {
+            if(base64[i] == '_') {
+                continue;
+            }
+            int index = -1;
+            for(int j = 0; j < base.length(); ++j) {
+                if (base[j] == base64[i]) {
+                    index = j;
                     break;
                 }
             }
-
-            if (match1)
-            {
-                title = line.substr(format1.length());
-                return true;
+            if (index != -1) {
+                num += index * power;
+                power *= 64;
+            } else {
+                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                return -1; // Return an error code for invalid input
             }
-
-            bool match2 = true;
-            for (int i = 0; i < format2.length(); i++)
-            {
-                if (line[i] != format2[i])
-                {
-                    match2 = false;
-                    break;
-                }
-            }
-            if (match2)
-            {
-                diffName = line.substr(format2.length());
-                // printf("Diff name: %s\n", diffName.c_str());
-                return true;
-            }
-
-            bool match3 = true;
-            for (int i = 0; i < format3.length(); i++)
-            {
-                if (line[i] != format3[i])
-                {
-                    match3 = false;
-                    break;
-                }
-            }
-
-            if (match3)
-            {
-                rstate = OSUFileReadingState::HitObjects;
-                // printf("HitObjects parse started\n");
-                return true;
-            }
-
-            bool match4 = true;
-            for (int i = 0; i < format4.length(); i++)
-            {
-                if (line[i] != format4[i])
-                {
-                    match4 = false;
-                    break;
-                }
-            }
-            if (match4)
-            {
-                beatmapSetID = line.substr(format4.length());
-                // printf("BeatmapSetID: %s\n", beatmapSetID.c_str());
-                return true;
-            }
-
-            bool match5 = true;
-            for (int i = 0; i < format5.length(); i++)
-            {
-                if (line[i] != format5[i])
-                {
-                    match5 = false;
-                    break;
-                }
-            }
-            if (match5)
-            {
-                OverallDifficulty = line.substr(format5.length());
-                // printf("OverallDifficulty: %s\n", OverallDifficulty.c_str());
-                return true;
-            }
-
-            bool match6 = true;
-            for (int i = 0; i < format6.length(); i++)
-            {
-                if (line[i] != format6[i])
-                {
-                    match6 = false;
-                    break;
-                }
-            }
-            if (match6)
-            {
-                Artist = line.substr(format6.length());
-                // printf("Artist: %s\n", Artist.c_str());
-                return true;
-            }
-
-            return true;
         }
-
-        if (rstate == OSUFileReadingState::HitObjects)
-        {
-            OSUNote note;
-            int state = OSUFileReadingState::HitObjects_X;
-            IStringType buffer = "";
-            for (int i = 0; i < line.length(); i++)
-            {
-                char c = line[i];
-                if (state == OSUFileReadingState::HitObjects_X)
-                {
-                    if (c == ',')
-                    {
-                        int colData = string2int(buffer);
-                        note.col = (int)(colData * 4 / 512);
-                        buffer = "";
-                        state = OSUFileReadingState::HitObjects_Y;
-                    }
-                    else
-                    {
-                        buffer += c;
-                    }
-                    continue;
-                }
-                if (state == OSUFileReadingState::HitObjects_Y)
-                {
-                    if (c == ',')
-                    {
-                        state = OSUFileReadingState::HitObjects_Time;
-                    }
-                    continue;
-                }
-                if (state == OSUFileReadingState::HitObjects_Time)
-                {
-                    if (c == ',')
-                    {
-                        note.time = string2int(buffer);
-                        buffer = "";
-                        state = OSUFileReadingState::HitObjects_Type;
-                    }
-                    else
-                    {
-                        buffer += c;
-                    }
-                    continue;
-                }
-                if (state == OSUFileReadingState::HitObjects_Type)
-                {
-                    if (c == ',')
-                    {
-                        note.type = string2int(buffer);
-                        buffer = "";
-                        state = OSUFileReadingState::HitObjects_HitSound;
-                    }
-                    else
-                    {
-                        buffer += c;
-                    }
-                    continue;
-                }
-                if (state == OSUFileReadingState::HitObjects_HitSound)
-                {
-                    if (c == ',')
-                    {
-                        state = OSUFileReadingState::HitObjects_EndTime;
-                    }
-                    continue;
-                }
-                if (state == OSUFileReadingState::HitObjects_EndTime)
-                {
-                    if (c == ':')
-                    {
-                        note.endtime = string2int(buffer);
-                        buffer = "";
-                        state = OSUFileReadingState::HitObjects_NEWLINE;
-                    }
-                    else
-                    {
-                        buffer += c;
-                    }
-                    continue;
-                }
-            }
-
-            if (state == OSUFileReadingState::HitObjects_X)
-            {
-                printf("End of hit objects\n");
-                state = OSUFileReadingState::AnyHitObjectORMETA;
-            }
-            else if (state != OSUFileReadingState::HitObjects_NEWLINE)
-            {
-                printf("Wrong note data\n");
-                return false;
-            }
-            else
-            {
-                if(note.endtime && note.time > note.endtime) {
-                    int oldTime = note.time;
-                    note.time = note.endtime;
-                    note.endtime = oldTime;
-                }
-                notes[note.col].push_back({
-                    note.time,
-                    note.endtime,
-                });
-            }
-
-            return true;
-        }
-
-        return true;
+    
+        return num;
     }
 
+    StringParser(IStringType content) : content(content) {}
+    IStringType parseString(int length) {
+        // get length characters from cursor
+        IStringType str = content.substr(cursor, length);
+        cursor += length;
+        // parse that str into number
+        int num = base64ToNumber(str);
+        // read num characters from cursor
+        IStringType result = content.substr(cursor, num);
+        cursor += num;
+        return result;
+    }
+
+    IStringType getStringLength(int length) {
+        IStringType str = content.substr(cursor, length);
+        cursor += length;
+        return str;
+    }
+
+    bool hasMore() {
+        return cursor < content.length();
+    }
+    unsigned long left() {
+        return content.length() - cursor;
+    }
+};
+
+class OsuNote
+{
 public:
-    IVector<OSUNote_wihtoutcol> notes[4];
+    int time;
+    int endtime;
+};
+
+class OsuMetaFile
+{
+public:
+    unsigned long id;
+    unsigned long beatsetid;
     IStringType title;
-    IStringType diffName;
-    IStringType beatmapSetID;
-    IStringType OverallDifficulty;
-    IStringType Artist;
+    IStringType artist;
+    IStringType version;
+    int colChunksCount[4];
+    int colNotesCount[4];
 
-    // used for arduino
-    IStringType filePath;
-
-    bool load(IStringType fpath, bool loadOnlyMetadata = false)
+    void parse(StringParser &parser)
     {
-        filePath = fpath;
-        return loadFrom(loadOnlyMetadata);
+        beatsetid = parser.base64ToLargeNumber(parser.getStringLength(6));
+        id = parser.base64ToLargeNumber(parser.getStringLength(6));
+        title = parser.parseString(2);
+        artist = parser.parseString(2);
+        version = parser.parseString(2);
+        for (int i = 0; i < 4; i++)
+        {
+            colChunksCount[i] = parser.base64ToNumber(parser.getStringLength(2));
+        }
+        for(int i = 0; i < 4; i++) {
+            colNotesCount[i] = parser.base64ToNumber(parser.getStringLength(3));
+        }
+    }
+};
+
+class OsuChunkedMap
+{
+public:
+    IStringType id;
+    int chunksCount[4];
+    int chunksLoadedFrom[4];
+    int chunksLoadedTo[4];
+    int colNotesCount[4];
+    IVector<OsuNote> notes[4];
+
+    void unloadAll() {
+        for (int i = 0; i < 4; i++)
+        {
+            chunksLoadedFrom[i] = -1;
+            chunksLoadedTo[i] = -1;
+            notes[i].clear();
+        }
     }
 
-    void unload()
-    {
-        notes[0].clear();
-        notes[1].clear();
-        notes[2].clear();
-        notes[3].clear();
+    void initialize(unsigned long id) {
+#ifdef _PRINTF_MAP_LOAD_INFO_
+        printf("Loading map with id %s\n", ul2string(id).c_str());
+#endif
+        for (int i = 0; i < 4; i++)
+        {
+            chunksLoadedFrom[i] = -1;
+            chunksLoadedTo[i] = -1;
+            notes[i].clear();
+        }
+        this->id = ul2string(id);
+
+        StringParser parser = StringParser(fsapi.get("map-" + this->id + ".meta"));
+        OsuMetaFile meta;
+        meta.parse(parser);
+
+        for (int i = 0; i < 4; i++)
+        {
+            chunksCount[i] = meta.colChunksCount[i];
+            colNotesCount[i] = meta.colNotesCount[i];
+            loadChunk(i, 0);
+        }
     }
 
-    bool loadFrom(bool loadOnlyMetadata = false)
-    {
-        IStringType notedata = fsapi.get(filePath);
-
-        DeltaTime startTime;
-        startTime.deltaTime();
-
-        notes[0].clear();
-        notes[1].clear();
-        notes[2].clear();
-        notes[3].clear();
-
-        rstate = OSUFileReadingState::FormatVersion;
-
-        IStringType buffer = "";
-        for (int i = 0; i < notedata.length(); i++)
-        {
-            char c = notedata[i];
-            if (c == '\n')
-            {
-                bool res = load_line(buffer);
-                if (!res)
-                    return false;
-                buffer = "";
-            }
-            else
-            {
-                buffer += c;
-            }
-
-            if (loadOnlyMetadata && rstate == OSUFileReadingState::HitObjects)
-                break;
+    void loadChunk(int col, int chunk) {
+        if (chunksLoadedFrom[col] <= chunk && chunk <= chunksLoadedTo[col]) {
+#ifdef _PRINTF_MAP_LOAD_INFO_
+            printf("Chunk %d for column %d already loaded\n", chunk, col);
+#endif
+            return;
         }
-        if (!(loadOnlyMetadata && rstate == OSUFileReadingState::HitObjects))
+#ifdef _PRINTF_MAP_LOAD_INFO_
+        printf("Loading chunk %d for column %d\n", chunk, col);
+#endif
+
+        StringParser parser = StringParser(fsapi.get("chunk-" + this->id + "-" + int2string(col) + "-" + int2string(chunk) + ".chunk"));
+        while (parser.hasMore())
         {
-            bool res = load_line(buffer);
-            if (!res)
-                return false;
+            OsuNote note;
+            note.time = parser.base64ToNumber(parser.getStringLength(4));
+            char nowChar = parser.content[parser.cursor];
+            note.endtime = 0;
+            if(nowChar != '@') {
+                note.endtime = parser.base64ToNumber(parser.getStringLength(4));
+            } else parser.cursor++;
+            notes[col].push_back(note);
         }
 
-        // printf("Loaded notes of %lu %lu %lu %lu\n", notes[0].size(), notes[1].size(), notes[2].size(), notes[3].size());
-        // printf("Loaded in %d ms\n", startTime.deltaTime());
+        if (chunksLoadedFrom[col] == -1)
+        {
+            chunksLoadedFrom[col] = chunk;
+        } else if(chunksLoadedFrom[col] > chunk) {
+            chunksLoadedFrom[col] = chunk;
+        }
 
-        return true;
+        if (chunksLoadedTo[col] == -1)
+        {
+            chunksLoadedTo[col] = chunk;
+        } else if(chunksLoadedTo[col] < chunk) {
+            chunksLoadedTo[col] = chunk;
+        }
+    }
+
+    void unload(int col, int leastRendered) {
+        int neededFrom = leastRendered / 100;
+        if(neededFrom > chunksLoadedFrom[col]) {
+            // remove 100 items
+            int removeCount = 100;
+            if(neededFrom < chunksLoadedTo[col]) {
+                removeCount = neededFrom - chunksLoadedFrom[col];
+            }
+
+            notes[col].erase(notes[col].begin(), notes[col].begin() + removeCount);
+            chunksLoadedFrom[col]++;
+#ifdef _PRINTF_MAP_LOAD_INFO_
+            printf("Unloading %d notes from column %d\n", removeCount, col);
+#endif
+        }
+    }
+
+    OsuNote get(int col, int index) {
+        int indexChunk = index / 100;
+        if(chunksLoadedFrom[col] > indexChunk || chunksLoadedTo[col] < indexChunk) {
+            loadChunk(col, indexChunk);
+        }
+        return notes[col].data[index - chunksLoadedFrom[col] * 100];
     }
 };

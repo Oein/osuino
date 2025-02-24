@@ -1,4 +1,3 @@
-
 class TwoCursor
 {
 public:
@@ -13,6 +12,8 @@ public:
 };
 
 TwoCursor requestedPlaymap = TwoCursor(0, 0);
+IVector<IVector<OsuMetaFile>> beatMetafiles;
+IMapUL<unsigned long> beatset2metaidx;
 
 class SelectScene
 {
@@ -35,15 +36,15 @@ public:
 
     void loadOSUFile(IStringType filepath)
     {
-        OSUFile of = OSUFile();
-        of.load(filepath, true);
-        if (!_GLOBAL_MAPS_.has(of.beatmapSetID))
-        {
-            _GLOBAL_MAPS_.insert(of.beatmapSetID, _GLOBAL_MAPS_.size());
-            _GLOBAL_MAPS_SD_.push_back(IVector<OSUFile>());
+        OsuMetaFile meta;
+        StringParser parser(fsapi.get(filepath));
+        meta.parse(parser);
+        if(!beatset2metaidx.has(meta.beatsetid)) {
+            beatset2metaidx.insert(meta.beatsetid, beatMetafiles.size());
+            beatMetafiles.push_back(IVector<OsuMetaFile>());
         }
 
-        _GLOBAL_MAPS_SD_.data[_GLOBAL_MAPS_.at(of.beatmapSetID)].push_back(of);
+        beatMetafiles.data[beatset2metaidx.at(meta.beatsetid)].push_back(meta);
     }
 
     void syncnolus_sdmapLoading()
@@ -51,7 +52,7 @@ public:
         // TODO: implement on arduino
         loadingScene->setProgress(0);
         loadingScene->update(true);
-        IVector<IStringType> files = fsapi.list();
+        IVector<IStringType> files = fsapi.listMetas();
         int totalFiles = files.size();
         for (int i = 0; i < totalFiles; i++)
         {
@@ -63,10 +64,10 @@ public:
         }
 
 #ifdef _PRINTF_INFO_
-        printf("Loaded %lu map sets\n", _GLOBAL_MAPS_.size());
-        for (int i = 0; i < _GLOBAL_MAPS_SD_.size(); i++)
+        printf("Loaded %lu map sets\n", beatMetafiles.size());
+        for (int i = 0; i < beatMetafiles.size(); i++)
         {
-            printf("Mapset %d has %lu maps\n", i, _GLOBAL_MAPS_SD_.at(i).size());
+            printf("Mapset %d has %lu maps\n", i, beatMetafiles.at(i).size());
         }
 #endif
     }
@@ -85,14 +86,14 @@ public:
         }
         else
             api->drawRect(10, y, CANVAS_WIDTH - 20, __SELECT_MAP_HEIGHT__, rgb_darken(255, 255, 255, 0.3));
-        api->drawTextTopLeft(15, y + 15, int2string(cursor + 1) + ". " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).title + " - " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).Artist, COLOR_BLACK);
-        api->drawTextTopLeftSmaller(25, y + 33, char2string(subcursor + 'a') + ". (" + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).OverallDifficulty + ") " + _GLOBAL_MAPS_SD_.at(cursor).at(subcursor).diffName, COLOR_BLACK);
+        api->drawTextTopLeft(15, y + 15, int2string(cursor + 1) + ". " + beatMetafiles.at(cursor).at(subcursor).title + " - " + beatMetafiles.at(cursor).at(subcursor).artist, COLOR_BLACK);
+        api->drawTextTopLeftSmaller(25, y + 33, char2string(subcursor + 'a') + ". " + beatMetafiles.at(cursor).at(subcursor).version, COLOR_BLACK);
     }
 
     void render()
     {
         api->clear();
-        if (_GLOBAL_MAPS_.size() == 0)
+        if (beatMetafiles.size() == 0)
         {
             api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20, "Select Menu", COLOR_WHITE);
             api->drawText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20, "No mapset found", COLOR_WHITE);
@@ -129,14 +130,14 @@ public:
         while (offset > 0)
         {
             subCursor++;
-            if (subCursor >= _GLOBAL_MAPS_SD_.at(globalCursor).size())
+            if (subCursor >= beatMetafiles.at(globalCursor).size())
             {
                 globalCursor++;
                 subCursor = 0;
             }
             offset--;
 
-            if (globalCursor >= _GLOBAL_MAPS_SD_.size())
+            if (globalCursor >= beatMetafiles.size())
             {
                 globalCursor = 0;
                 subCursor = 0;
@@ -151,10 +152,10 @@ public:
                 globalCursor--;
                 if (globalCursor < 0)
                 {
-                    globalCursor = _GLOBAL_MAPS_SD_.size() - 1;
+                    globalCursor = beatMetafiles.size() - 1;
                 }
 
-                subCursor = _GLOBAL_MAPS_SD_.at(globalCursor).size() - 1;
+                subCursor = beatMetafiles.at(globalCursor).size() - 1;
             }
             offset++;
         }

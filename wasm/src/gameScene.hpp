@@ -85,6 +85,7 @@ public:
 };
 
 AccuracyViewer *accuracyViewer;
+OsuChunkedMap NMAP;
 
 class IngameLineHandler
 {
@@ -154,7 +155,7 @@ public:
     void processLongNote(int time, IngameButtonType btn) {
         // 롱노트 처리 중인 상태임
 
-        int noteDeleteTime = NOTE(keyIndex, processingLongNoteIndex).endtime + _NOTE_LATE_ALLOWANCE_;
+        int noteDeleteTime = NMAP.get(keyIndex, processingLongNoteIndex).endtime + _NOTE_LATE_ALLOWANCE_;
         if(noteDeleteTime < time) {
             // 롱노트가 이미 지나감
             processAccu(0);
@@ -166,7 +167,7 @@ public:
             return;
         }
 
-        int delta = NOTE(keyIndex, processingLongNoteIndex).endtime - time;
+        int delta = NMAP.get(keyIndex, processingLongNoteIndex).endtime - time;
         if(btn == IngameButtonType::HOLDING) {
             // 롱노트를 계속 누르고 있음
             if(longNoteCombo.deltaTime() > _LONG_NOTE_COMBO_STACK_MS_) {
@@ -193,14 +194,14 @@ public:
         if(processingLongNoteIndex != -1) return processLongNote(time, btn);
 
         // 아직 아무것도 관여되어있지 않음.
-        for(int i = processFrom; i < NMAP.notes[keyIndex].size(); i++) {
-            bool isLongNote = NOTE(keyIndex, i).endtime > 0;
-            if(NOTE(keyIndex, i).time > time + CANVAS_HEIGHT * _NOTE_PIXEL_PER_MS_) {
+        for(int i = processFrom; i < NMAP.colNotesCount[keyIndex]; i++) {
+            bool isLongNote = NMAP.get(keyIndex, i).endtime > 0;
+            if(NMAP.get(keyIndex, i).time > time + CANVAS_HEIGHT * _NOTE_PIXEL_PER_MS_) {
                 // 아직 노트가 안나왔음
                 break;
             }
 
-            int noteDeleteTime = (isLongNote ? NOTE(keyIndex, i).endtime : NOTE(keyIndex, i).time) + _NOTE_LATE_ALLOWANCE_;
+            int noteDeleteTime = (isLongNote ? NMAP.get(keyIndex, i).endtime : NMAP.get(keyIndex, i).time) + _NOTE_LATE_ALLOWANCE_;
             if(noteDeleteTime < time) {
                 // 노트가 이미 지나감
                 processAccu(0);
@@ -214,7 +215,7 @@ public:
             // 노트를 눌르지 않을경우 아무 처리도 하지 않음
             if(btn != IngameButtonType::JUST_PRESSED) continue;
 
-            int delta = NOTE(keyIndex, i).time - time;
+            int delta = NMAP.get(keyIndex, i).time - time;
             if(delta > _NOTE_IGNORE_DELTA_) {
                 // 노트가 아직 너무 먼 곳에 있음
                 break;
@@ -247,6 +248,7 @@ public:
 
     void render(int time)
     {
+        NMAP.unload(keyIndex, renderFrom);
         processKeypress(time);
 
         if(processingLongNoteIndex != -1) {
@@ -259,17 +261,18 @@ public:
         bool newRendered[CANVAS_HEIGHT] = {
             false,
         };
+#endif
 
-        for(int i = renderFrom;i < NMAP.notes[keyIndex].size(); i++) {
-            bool isLongNote = NOTE(keyIndex, i).endtime > 0;
+        for(int i = renderFrom;i < NMAP.colNotesCount[keyIndex]; i++) {
+            bool isLongNote = NMAP.get(keyIndex, i).endtime > 0;
 
             // single note
-            int noteY = _NOTE_END_Y_ - (NOTE(keyIndex, i).time - time) * _NOTE_PIXEL_PER_MS_;
+            int noteY = _NOTE_END_Y_ - (NMAP.get(keyIndex, i).time - time) * _NOTE_PIXEL_PER_MS_;
             int noteH = _SINGLE_NOTE_HEIGHT_;
 
             if(isLongNote) {
-                noteY = _NOTE_END_Y_ - (NOTE(keyIndex, i).endtime - time) * _NOTE_PIXEL_PER_MS_;
-                noteH = (NOTE(keyIndex, i).endtime - NOTE(keyIndex, i).time) * _NOTE_PIXEL_PER_MS_;
+                noteY = _NOTE_END_Y_ - (NMAP.get(keyIndex, i).endtime - time) * _NOTE_PIXEL_PER_MS_;
+                noteH = (NMAP.get(keyIndex, i).endtime - NMAP.get(keyIndex, i).time) * _NOTE_PIXEL_PER_MS_;
             }
 
             if(noteY + noteH <= 0) {
@@ -297,11 +300,19 @@ public:
             assert(noteY >= 0 && noteY < CANVAS_HEIGHT);
             assert(noteH > 0 && noteY + noteH <= CANVAS_HEIGHT);
 
+#ifndef _RENDER_EVERY_FRAME_
             for(int j = noteY; j < noteY + noteH && j < CANVAS_HEIGHT; j++) {
                 newRendered[j] = true;
             }
+#else
+            api->drawRect(keyX, noteY, CANVAS_WIDTH / 4, noteH, NOTE_COLORS[keyIndex]);
+    #ifdef _DRAW_NOTE_INDEX_
+            api->drawTextTopLeft(keyX + 5, noteY + 5, int2string(i) + "(" + int2string(i / 100) + ")", COLOR_BLACK);
+    #endif
+#endif
         }
 
+#ifndef _RENDER_EVERY_FRAME_
         int seqStart = -1;
         int seqEnd = -1;
         bool seqData = false;
@@ -335,49 +346,6 @@ public:
         }
 
         handleDraw(seqStart, seqEnd, seqData);
-#else
-        for(int i = renderFrom; i < NMAP.notes[keyIndex].size(); i++) {
-            bool isLongNote = NOTE(keyIndex, i).endtime > 0;
-
-            // single note
-            int noteY = _NOTE_END_Y_ - (NOTE(keyIndex, i).time - time) * _NOTE_PIXEL_PER_MS_;
-            int noteH = _SINGLE_NOTE_HEIGHT_;
-
-            if(isLongNote) {
-                noteY = _NOTE_END_Y_ - (NOTE(keyIndex, i).endtime - time) * _NOTE_PIXEL_PER_MS_;
-                noteH = (NOTE(keyIndex, i).endtime - NOTE(keyIndex, i).time) * _NOTE_PIXEL_PER_MS_;
-            }
-
-            if(noteY + noteH <= 0) {
-                // 노트의 끝이 화면에 들어오지 않음
-                break;
-            }
-
-            if(noteY < 0) {
-                // 노트가 화면 위에 걸침
-                noteH += noteY;
-                noteY = 0;
-            }
-
-            if(noteY >= CANVAS_HEIGHT) {
-                // 노트가 화면 밖에 있음
-                renderFrom = i + 1;
-                continue;
-            }
-
-            if(noteY + noteH >= CANVAS_HEIGHT) {
-                // 노트가 화면 아래에 걸침
-                noteH = CANVAS_HEIGHT - noteY;
-            }
-
-            assert(noteY >= 0 && noteY < CANVAS_HEIGHT);
-            assert(noteH > 0 && noteY + noteH <= CANVAS_HEIGHT);
-
-            api->drawRect(keyX, noteY, CANVAS_WIDTH / 4, noteH, NOTE_COLORS[keyIndex]);
-#ifdef _DRAW_NOTE_INDEX_
-            api->drawTextTopLeft(keyX + 5, noteY + 5, int2string(i), COLOR_BLACK);
-#endif
-        }
 #endif
     }
 };
@@ -446,22 +414,16 @@ public:
         loadingScene->update(true);
 
         // unload last loaded
-        if (lastLoaded.cursor < _GLOBAL_MAPS_SD_.size())
-        {
-            _GLOBAL_MAPS_SD_.data[lastLoaded.cursor].data[lastLoaded.subcursor].unload();
-#ifdef _PRINTF_INFO_
-            printf("Unloaded map %s\n", _GLOBAL_MAPS_SD_.at(lastLoaded.cursor).at(lastLoaded.subcursor).title.c_str());
-#endif
-        }
+        NMAP.unloadAll();
 
         loadingScene->setProgress(10);
         loadingScene->update(true);
 
         lastLoaded = requestedPlaymap;
-#ifdef _PRINTF_INFO_
-        printf("Loading map %s\n", _GLOBAL_MAPS_SD_.data[lastLoaded.cursor].data[lastLoaded.subcursor].title.c_str());
+#ifdef _PRINTF_MAP_LOAD_INFO_
+        printf("Loading map with cursor %d, %d\n", lastLoaded.cursor, lastLoaded.subcursor);
 #endif
-        _GLOBAL_MAPS_SD_.data[lastLoaded.cursor].data[lastLoaded.subcursor].loadFrom();
+        NMAP.initialize(beatMetafiles.data[lastLoaded.cursor].data[lastLoaded.subcursor].id);
 
         loadingScene->setProgress(100);
         loadingScene->update(true);

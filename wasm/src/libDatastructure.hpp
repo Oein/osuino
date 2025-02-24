@@ -21,6 +21,19 @@ public:
     {
         data.clear();
     }
+    auto begin()
+    {
+        return data.begin();
+    }
+    auto end()
+    {
+        return data.end();
+    }
+    // erase with begin and end
+    void erase(typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end)
+    {
+        data.erase(begin, end);
+    }
 };
 
 #include <map>
@@ -48,6 +61,34 @@ public:
         data.clear();
     }
     bool has(IStringType key)
+    {
+        return data.find(key) != data.end();
+    }
+};
+
+template <typename T>
+class IMapUL
+{
+public:
+    std::map<unsigned long, T> data;
+
+    unsigned long size()
+    {
+        return data.size();
+    }
+    void insert(unsigned long key, T value)
+    {
+        data.insert(std::pair<unsigned long, T>(key, value));
+    }
+    T at(unsigned long key)
+    {
+        return data.at(key);
+    }
+    void clear()
+    {
+        data.clear();
+    }
+    bool has(unsigned long key)
     {
         return data.find(key) != data.end();
     }

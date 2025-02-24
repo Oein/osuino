@@ -10,21 +10,28 @@
 #define CANVAS_HEIGHT 480
 
 // 랜더링시 노트를 매 프레임마다 그립니다. (아두이노에서는 절대 금지)
-#undef _RENDER_EVERY_FRAME_
+#define _RENDER_EVERY_FRAME_
 // 노트가 미스된경우 콘솔에 출력
 #undef _PRINT_NOTE_MISSED_
 // 노트 인덱스를 노트위에 작성합니다. _RENDER_EVERY_FRAME_가 활성화 되어야 합니다.
-#undef _DRAW_NOTE_INDEX_
+#define _DRAW_NOTE_INDEX_
 // FPS를 화면에 그립니다.
 #undef _DRAW_FPS_
 // info 수준의 로그를 출력합니다.
 #define _PRINTF_INFO_
+// 맵 로딩 로그를 출력합니다.
+#define _PRINTF_MAP_LOAD_INFO_
 // 노트 판정 시간을 출력합니다.
 #undef _PRINT_EARLY_LATE_MS_
 // 죽지 않습니다.
 #undef __NO_DIE__
 // 모든 동작 사이 애니메이션을 끕니다, 아두이노에서는 필수 입니다.
 #define __DO_NOT_ANIMATE__
+
+#ifndef _RENDER_EVERY_FRAME_
+#undef  _DRAW_NOTE_INDEX_
+#define __DO_NOT_ANIMATE__
+#endif
 
 // MARK: - Constants
 
@@ -45,7 +52,7 @@ const int __SELECT_PREV_MAPS__ = (__SELECT_MAP_COUNT__ - 1) / 2;
 const int __SELECT_NEXT_MAPS__ = (__SELECT_MAP_COUNT__ - __SELECT_PREV_MAPS__ - 1);
 const int __SELECT_MAP_START_Y__ = 10;
 
-float _NOTE_SPEED_ = 400.0;
+float _NOTE_SPEED_ = 600.0;
 
 #define _JUDGE_MAX_100_ 41
 #define _JUDGE_MAX_90_ 54
@@ -115,12 +122,6 @@ FS fsapi;
 #include "./OSUFile.hpp"
 
 bool _GLOBAL_MAP_SD_MODIFIED_ = true;
-IMap<int> _GLOBAL_MAPS_;
-IVector<IVector<OSUFile>> _GLOBAL_MAPS_SD_;
-
-#define MP(x, y) _GLOBAL_MAPS_SD_.data[x].data[y]
-#define NMAP MP(requestedPlaymap.cursor, requestedPlaymap.subcursor)
-#define NOTE(key, index) NMAP.notes[key].data[index]
 
 #include "./introScene.hpp"
 #include "./resultScene.hpp"
@@ -206,9 +207,11 @@ void update()
 }
 
 // MARK: - Emscripten Entry Point
-
+// #include "./libAPI.hpp"
 int main()
 {
+    // OSUINOFile f;
+    // f.parse();
 #ifdef _PRINTF_INFO_
     printf("============================\n");
     printf("OSUino started\n");
@@ -216,5 +219,6 @@ int main()
     emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, keyCallbackPress);
     emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, keyCallbackRelease);
     emscripten_set_main_loop(update, 0, 1);
+
     return 0;
 }

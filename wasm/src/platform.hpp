@@ -39,6 +39,11 @@ IStringType int2string(int num)
     return std::to_string(num);
 }
 
+IStringType ul2string(unsigned long num)
+{
+    return std::to_string(num);
+}
+
 IStringType char2string(char chr)
 {
     return std::string(1, chr);
