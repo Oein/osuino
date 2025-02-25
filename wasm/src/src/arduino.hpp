@@ -3,7 +3,7 @@
 #define CANVAS_HEIGHT 480
 
 // 아두이노인지 확인합니다.
-#undef _IS_ARDUINO_
+#define _IS_ARDUINO_
 // 랜더링시 노트를 매 프레임마다 그립니다. (아두이노에서는 절대 금지)
 #define _RENDER_EVERY_FRAME_
 // 노트가 미스된경우 콘솔에 출력
@@ -25,15 +25,10 @@
 // 모든 동작 사이 애니메이션을 끕니다, 아두이노에서는 필수 입니다.
 #define _DO_NOT_ANIMATE_
 
-#ifndef _RENDER_EVERY_FRAME_
-#undef  _DRAW_NOTE_INDEX_
-#define _DO_NOT_ANIMATE_
-#endif
-#ifdef _IS_ARDUINO_
+
 #undef _RENDER_EVERY_FRAME_
 #undef _DRAW_NOTE_INDEX_
 #define _DO_NOT_ANIMATE_
-#endif
 
 // MARK: - Constants
 
@@ -115,41 +110,31 @@ enum Scene
 Scene currentScene = Scene::Intro;
 
 // MARK: - Libraries
-#ifdef _IS_ARDUINO_
 #include <stdio.h>
 #include <string.h>
 #include "./platform-arduino.hpp"
-#else
-#include <stdio.h>
-#include <emscripten.h>
-#include <emscripten/val.h>
-#include <emscripten/emscripten.h>
-#include <emscripten/html5.h>
-#include <string.h>
-#include "./src/platform-wasm.hpp"
-#endif
-#include "./src/libDatastructure.hpp"
+#include "./libDatastructure.hpp"
 
-#include "./src/libFS.hpp"
+#include "./libFS.hpp"
 FS fsapi;
 
-#include "./src/libAnimate.hpp"
-#include "./src/libKey.hpp"
-#include "./src/OSUFile.hpp"
-#include "./src/libKeyboard.hpp"
+#include "./libAnimate.hpp"
+#include "./libKey.hpp"
+#include "./OSUFile.hpp"
+#include "./libKeyboard.hpp"
 
 Input input;
 
 bool _GLOBAL_MAP_SD_MODIFIED_ = true;
 
-#include "./src/introScene.hpp"
-#include "./src/resultScene.hpp"
-#include "./src/loadingScene.hpp"
-#include "./src/selectScene.hpp"
-#include "./src/downloadScene.hpp"
-#include "./src/optionsScene.hpp"
-#include "./src/gameScene.hpp"
-#include "./src/titleScene.hpp"
+#include "./introScene.hpp"
+#include "./resultScene.hpp"
+#include "./loadingScene.hpp"
+#include "./selectScene.hpp"
+#include "./downloadScene.hpp"
+#include "./optionsScene.hpp"
+#include "./gameScene.hpp"
+#include "./titleScene.hpp"
 
 // MARK: - Main Data Structures
 

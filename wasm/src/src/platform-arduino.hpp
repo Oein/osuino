@@ -1,5 +1,6 @@
 #define IColorType int16_t
 #define IStringType String
+#define subString(sub, start, end) sub.substring(start, end)
 
 IColorType rgb(unsigned char r, unsigned char g, unsigned char b)
 {
@@ -50,6 +51,11 @@ IStringType int2string(int num)
 IStringType char2string(char chr)
 {
     return String(chr);
+}
+
+IStringType ul2string(unsigned long num)
+{
+    return String(num);
 }
 
 int largest(int a, int b)

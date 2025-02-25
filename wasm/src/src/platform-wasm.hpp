@@ -1,5 +1,6 @@
 #define IColorType int
 #define IStringType std::string
+#define subString(sub, start, end) sub.substr(start, end)
 
 IColorType rgb(int r, int g, int b)
 {

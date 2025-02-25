@@ -21,14 +21,16 @@ public:
     {
         data.clear();
     }
-    auto begin()
+    
+    typename std::vector<T>::iterator begin()
     {
         return data.begin();
     }
-    auto end()
+    typename std::vector<T>::iterator end()
     {
         return data.end();
     }
+    
     // erase with begin and end
     void erase(typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end)
     {

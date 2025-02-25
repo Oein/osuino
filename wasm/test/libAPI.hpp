@@ -65,18 +65,18 @@ public:
 
     IStringType parseString(int length) {
         // get length characters from cursor
-        IStringType str = mapFile.substr(cursor, length);
+        IStringType str = subString(mapFile, cursor, length);
         cursor += length;
         // parse that str into number
         int num = base64ToNumber(str);
         // read num characters from cursor
-        IStringType result = mapFile.substr(cursor, num);
+        IStringType result = subString(mapFile, cursor, num);
         cursor += num;
         return result;
     }
 
     IStringType getStringLength(int length) {
-        IStringType str = mapFile.substr(cursor, length);
+        IStringType str = subString(mapFile, cursor, length);
         cursor += length;
         return str;
     }
@@ -104,7 +104,7 @@ public:
 
         int metaDataLength = 6 + 6 + title.length() + artist.length() + version.length() + 2 + 2 + 2 + 8;
         printf("Metadata length: %d\n", metaDataLength);
-        printf("if(filename == \"map-%zu.meta\") return \"%s\";\n", id, mapFile.substr(0, metaDataLength).c_str());
+        printf("if(filename == \"map-%zu.meta\") return \"%s\";\n", id, subString(mapFile, 0, metaDataLength).c_str());
 
         for (int i = 0; i < 4; ++i) {
             for(int j = 0;j < chunksSizes[i];j ++) {

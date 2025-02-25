@@ -134,7 +134,7 @@ public:
                 else if(key == "<") {
                     // backspace
                     if(result.result.length() > 0) {
-                        result.result = result.result.substr(0, result.result.length() - 1);
+                        result.result = subString(result.result, 0, result.result.length() - 1);
                     }
                 }
                 else {

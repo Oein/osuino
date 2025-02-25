@@ -35,7 +35,8 @@
     "variant": "cpp",
     "__locale": "cpp",
     "*.inc": "cpp",
-    "ratio": "cpp"
+    "ratio": "cpp",
+    "__bit_reference": "cpp"
   },
   "editor.formatOnSave": false,
   "typescript.tsdk": "electron/.yarn/sdks/typescript/lib",

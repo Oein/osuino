@@ -61,18 +61,18 @@ public:
     StringParser(IStringType content) : content(content) {}
     IStringType parseString(int length) {
         // get length characters from cursor
-        IStringType str = content.substr(cursor, length);
+        IStringType str = subString(content, cursor, length);
         cursor += length;
         // parse that str into number
         int num = base64ToNumber(str);
         // read num characters from cursor
-        IStringType result = content.substr(cursor, num);
+        IStringType result = subString(content, cursor, num);
         cursor += num;
         return result;
     }
 
     IStringType getStringLength(int length) {
-        IStringType str = content.substr(cursor, length);
+        IStringType str = subString(content, cursor, length);
         cursor += length;
         return str;
     }
