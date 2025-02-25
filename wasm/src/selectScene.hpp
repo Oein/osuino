@@ -225,7 +225,7 @@ public:
         if (last2Button != buttonPressed(2))
         {
             last2Button = buttonPressed(2);
-            if (!last2Button)
+            if (!last2Button && beatMetafiles.size() > 0)
             {
                 requestedPlaymap = TwoCursor(cursor, mapsetCursor);
                 currentScene = Scene::Ingame;

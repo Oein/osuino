@@ -48,8 +48,8 @@ float _NOTE_PIXEL_PER_MS_ = _NOTE_Y_RANGE_ / _NOTE_SPEED_;
 #define _JUDGE_MAX_10_ 177
 #define _JUDGE_MAX_0_ CANVAS_HEIGHT / 2 * _NOTE_PIXEL_PER_MS_
 
-#define __DO_NOT_ANIMATE__ true
-#define __NO_DIE__ true
+#define _DO_NOT_ANIMATE_ true
+#define _NO_DIE_ true
 
 float _SINGLE_NOTE_HIEGHT_ = 20;
 
@@ -422,7 +422,7 @@ public:
 
     bool update()
     {
-#ifdef __DO_NOT_ANIMATE__
+#ifdef _DO_NOT_ANIMATE_
         if (now != target)
         {
             now = target;
@@ -1995,7 +1995,7 @@ public:
         // 체력선 그리기
         // api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
 
-#ifndef __NO_DIE__
+#ifndef _NO_DIE_
         if (health <= 0)
         {
             currentScene = Scene::Result;

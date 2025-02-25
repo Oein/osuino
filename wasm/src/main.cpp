@@ -1,14 +1,9 @@
-#include <stdio.h>
-#include <emscripten.h>
-#include <emscripten/val.h>
-#include <emscripten/emscripten.h>
-#include <emscripten/html5.h>
-#include <string.h>
-
 // MARK: - Environment
 #define CANVAS_WIDTH 320
 #define CANVAS_HEIGHT 480
 
+// 아두이노인지 확인합니다.
+#undef _IS_ARDUINO_
 // 랜더링시 노트를 매 프레임마다 그립니다. (아두이노에서는 절대 금지)
 #define _RENDER_EVERY_FRAME_
 // 노트가 미스된경우 콘솔에 출력
@@ -23,14 +18,21 @@
 #define _PRINTF_MAP_LOAD_INFO_
 // 노트 판정 시간을 출력합니다.
 #undef _PRINT_EARLY_LATE_MS_
+// 파일 시스템 로그를 출력합니다.
+#undef _PRINTF_FS_INFO_
 // 죽지 않습니다.
-#undef __NO_DIE__
+#undef _NO_DIE_
 // 모든 동작 사이 애니메이션을 끕니다, 아두이노에서는 필수 입니다.
-#define __DO_NOT_ANIMATE__
+#define _DO_NOT_ANIMATE_
 
 #ifndef _RENDER_EVERY_FRAME_
 #undef  _DRAW_NOTE_INDEX_
-#define __DO_NOT_ANIMATE__
+#define _DO_NOT_ANIMATE_
+#endif
+#ifdef _IS_ARDUINO_
+#undef _RENDER_EVERY_FRAME_
+#undef _DRAW_NOTE_INDEX_
+#define _DO_NOT_ANIMATE_
 #endif
 
 // MARK: - Constants
@@ -110,8 +112,19 @@ enum Scene
 Scene currentScene = Scene::Intro;
 
 // MARK: - Libraries
-
-#include "./platform.hpp"
+#ifdef _IS_ARDUINO_
+#include <stdio.h>
+#include <string.h>
+#include "./platform-arduino.hpp"
+#else
+#include <stdio.h>
+#include <emscripten.h>
+#include <emscripten/val.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#include <string.h>
+#include "./platform-wasm.hpp"
+#endif
 #include "./libDatastructure.hpp"
 
 #include "./libFS.hpp"
@@ -207,11 +220,9 @@ void update()
 }
 
 // MARK: - Emscripten Entry Point
-// #include "./libAPI.hpp"
+#ifndef _IS_ARDUINO_
 int main()
 {
-    // OSUINOFile f;
-    // f.parse();
 #ifdef _PRINTF_INFO_
     printf("============================\n");
     printf("OSUino started\n");
@@ -222,3 +233,37 @@ int main()
 
     return 0;
 }
+
+// MARK: - Arduino Entry Point
+#else
+void setup()
+{
+    tft.begin();
+    Serial.begin(115200);
+}
+void loop()
+{
+    update();
+    if (Serial.available() > 0)
+    {
+        const char c = Serial.read();
+        if (c == 's')
+            __buttonPressed__state__[0] = true;
+        if (c == 'd')
+            __buttonPressed__state__[1] = true;
+        if (c == 'l')
+            __buttonPressed__state__[2] = true;
+        if (c == 'k')
+            __buttonPressed__state__[3] = true;
+        if (c == 'S')
+            __buttonPressed__state__[0] = false;
+        if (c == 'D')
+            __buttonPressed__state__[1] = false;
+        if (c == 'L')
+            __buttonPressed__state__[2] = false;
+        if (c == 'K')
+            __buttonPressed__state__[3] = false;
+        // printf("Key state %d %d %d %d\n", __buttonPressed__state__[0], __buttonPressed__state__[1], __buttonPressed__state__[2], __buttonPressed__state__[3]);
+    }
+}
+#endif

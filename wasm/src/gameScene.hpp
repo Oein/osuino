@@ -387,7 +387,7 @@ public:
         if (health > 100)
             health = 100;
 
-#ifndef __NO_DIE__
+#ifndef _NO_DIE_
         api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
         if (health <= 0)
         {

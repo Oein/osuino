@@ -84,7 +84,7 @@ public:
 
     bool update()
     {
-#ifdef __DO_NOT_ANIMATE__
+#ifdef _DO_NOT_ANIMATE_
         if (now != target)
         {
             now = target;
