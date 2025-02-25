@@ -49,6 +49,9 @@
 // 롱노트 콤보 스텍 주기
 #define _LONG_NOTE_COMBO_STACK_MS_ 250
 
+#define _REPEAT_POST_DELAY_ 175
+#define _REPEAT_CYCLE_ 50
+
 const int __SELECT_MAP_COUNT__ = (CANVAS_HEIGHT - __SELECT_MAP_GAP__) / (__SELECT_MAP_HEIGHT__ + __SELECT_MAP_GAP__);
 const int __SELECT_PREV_MAPS__ = (__SELECT_MAP_COUNT__ - 1) / 2;
 const int __SELECT_NEXT_MAPS__ = (__SELECT_MAP_COUNT__ - __SELECT_PREV_MAPS__ - 1);
@@ -133,6 +136,9 @@ FS fsapi;
 #include "./libAnimate.hpp"
 #include "./libKey.hpp"
 #include "./OSUFile.hpp"
+#include "./libKeyboard.hpp"
+
+Input input;
 
 bool _GLOBAL_MAP_SD_MODIFIED_ = true;
 
@@ -221,8 +227,11 @@ void update()
 
 // MARK: - Emscripten Entry Point
 #ifndef _IS_ARDUINO_
+
 int main()
 {
+    input.api = &api;
+    input.requestInput();
 #ifdef _PRINTF_INFO_
     printf("============================\n");
     printf("OSUino started\n");

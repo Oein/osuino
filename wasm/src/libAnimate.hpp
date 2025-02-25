@@ -165,17 +165,17 @@ public:
         }
         if (buttonPressed && buttonState)
         {
-            if (timer.deltaTime() < 200 && !repeat)
+            if (timer.deltaTime() < _REPEAT_POST_DELAY_ && !repeat)
             {
                 return false;
             }
-            if (timer.deltaTime() > 200 && !repeat)
+            if (timer.deltaTime() > _REPEAT_POST_DELAY_ && !repeat)
             {
                 repeat = true;
                 repeatTimer.reset();
                 return true;
             }
-            if (repeat && repeatTimer.deltaTime() > 75)
+            if (repeat && repeatTimer.deltaTime() > _REPEAT_CYCLE_)
             {
                 repeatTimer.reset();
                 return true;
