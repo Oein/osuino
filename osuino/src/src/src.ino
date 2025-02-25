@@ -1,5 +1,12 @@
 #define _IS_ARDUINO_
-#include "./arduino.hpp"
+#include "./defines.hpp"
+
+// MARK: - Libraries
+#include <stdio.h>
+#include <string.h>
+#include "./platform/platform-arduino.hpp"
+
+#include "./main.hpp"
 
 void setup()
 {

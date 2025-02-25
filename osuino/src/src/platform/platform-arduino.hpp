@@ -76,7 +76,7 @@ bool buttonPressed(int button)
 
 #include <TFT_eSPI.h> // Hardware-specific library
 #include <SPI.h>
-#include "./Free_fonts.h"
+#include "./../lib/Free_fonts.h"
 
 TFT_eSPI tft = TFT_eSPI();
 
