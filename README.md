@@ -10,12 +10,19 @@ Currently making in web with wasm, to build and test much faster than testing on
  - [X] Title menu
  - [ ] Select menu
    - [X] Select menu UI
+   - [X] Selet menu load from FS
    - [ ] Selet menu load from SD Card
  - [X] Ingame
    > Now has an arduino crash beacuse of running out of ram
  - [ ] Results
  - [ ] Map downloads
+ - [ ] Settings
+   - [ ] WIFI Config
+   - [ ] Note speed
+   - [ ] Maybe bluetooth audio supporting?
+ - [X] Input Kerboard
  - [X] Read osu map file
+ - [X] API for arduino
 
 # Screenshots
 
