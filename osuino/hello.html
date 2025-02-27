@@ -1,1 +1,53 @@
-<!doctypehtml><html lang=ko-kr><head><meta charset=UTF-8><meta content="width=device-width,initial-scale=1"name=viewport><title>OSU</title><style>body{padding:0;margin:0;-webkit-app-region:drag}.k{width:30px;height:30px;border:1px solid #000;background:#000;display:inline-block}.ks{display:flex;gap:10px;flex-direction:row}</style></head><body><canvas id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas><div class=ks><div id=k0 class=k></div><div id=k1 class=k></div><div id=k2 class=k></div><div id=k3 class=k></div></div><div id=l0></div><div id=l1></div><div id=l2></div><div id=l3></div><script async src=hello.js></script></body></html>
+<!DOCTYPE html>
+<html lang="ko-kr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OSU</title>
+    <style>
+      body {
+        padding: 0px;
+        margin: 0px;
+        -webkit-app-region: drag;
+      }
+      .k {
+        width: 30px;
+        height: 30px;
+        border: 1px solid black;
+        background: black;
+        display: inline-block;
+      }
+      .ks {
+        display: flex;
+        gap: 10px;
+        flex-direction: row;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas
+      id="canvas"
+      oncontextmenu="event.preventDefault()"
+      tabindex="-1"
+    ></canvas>
+    <div class="ks">
+    <div id="k0" class="k"></div>
+    <div id="k1" class="k"></div>
+    <div id="k2" class="k"></div>
+    <div id="k3" class="k"></div>
+  </div>
+  <div id="l0"></div>
+  <div id="l1"></div>
+  <div id="l2"></div>
+  <div id="l3"></div>
+    <!-- <script>
+      const { ipcRenderer } = require('electron');
+
+      // Override console.log to send messages to the main process
+      console.log = function(message) {
+        ipcRenderer.send('log-message', message);
+      };
+    </script> -->
+    <script async type="text/javascript" src="hello.js"></script>
+  </body>
+</html>

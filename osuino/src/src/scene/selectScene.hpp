@@ -54,9 +54,15 @@ public:
         loadingScene->update(true);
         IVector<IStringType> files = fsapi.listMetas();
         int totalFiles = files.size();
+#ifdef _PRINTF_INFO_
+        printf("Found %d files\n", totalFiles);
+#endif
         for (int i = 0; i < totalFiles; i++)
         {
             IStringType file = files.data[i];
+#ifdef _PRINTF_INFO_
+            printf("Loading file %s\n", file.c_str());
+#endif
 
             loadOSUFile(file);
             loadingScene->setProgress((i + 1) * 100 / totalFiles);

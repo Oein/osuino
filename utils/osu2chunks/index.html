@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OSU 2 CHUNKS</title>
+    <style>
+        textarea {
+            width: 100%;
+        }
+    
+        button {
+            width: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+  </head>
+  <body>
+    <textarea
+      id="osu"
+      cols="30"
+      rows="10"
+      placeholder="Put your downloaded osuino map file"
+    ></textarea>
+    <button id="convert">Convert</button>
+    <textarea id="chunks" cols="30" rows="10"></textarea>
+
+    <script>
+      document.getElementById("convert").addEventListener("click", () => {
+        console.log("Converting");
+        const mapFile = document.getElementById("osu").value;
+
+        function base64ToNumber(base64) {
+          const base =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+          let num = 0;
+          let power = 1;
+
+          for (let i = 0; i < base64.length; i++) {
+            if (base64[i] === "_") {
+              continue;
+            }
+            let index = base.indexOf(base64[i]);
+            if (index !== -1) {
+              num += index * power;
+              power *= 64;
+            } else {
+              console.error(
+                `Invalid base64 character: ${base64[i]}, parsing ${base64}`
+              );
+              return -1; // Return an error code for invalid input
+            }
+          }
+
+          return num;
+        }
+
+        function base64ToLargeNumber(base64) {
+          const base =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+          let num = 0;
+          let power = 1;
+
+          for (let i = 0; i < base64.length; i++) {
+            if (base64[i] === "_") {
+              continue;
+            }
+            let index = base.indexOf(base64[i]);
+            if (index !== -1) {
+              num += index * power;
+              power *= 64;
+            } else {
+              console.error(
+                `Invalid base64 character: ${base64[i]}, parsing ${base64}`
+              );
+              return -1; // Return an error code for invalid input
+            }
+          }
+
+          return num;
+        }
+
+        class OSUINOFile {
+          constructor() {
+            this.cursor = 0;
+          }
+
+          parseString(length) {
+            // get length characters from cursor
+            let str = mapFile.substring(this.cursor, this.cursor + length);
+            this.cursor += length;
+            // parse that str into number
+            let num = base64ToNumber(str);
+            // read num characters from cursor
+            let result = mapFile.substring(this.cursor, this.cursor + num);
+            this.cursor += num;
+            return result;
+          }
+
+          getStringLength(length) {
+            let str = mapFile.substring(this.cursor, this.cursor + length);
+            this.cursor += length;
+            return str;
+          }
+
+          parse() {
+            let res = [];
+            console.log("Parsing file");
+            this.cursor = 0;
+
+            let setid = base64ToLargeNumber(this.getStringLength(6));
+            let id = base64ToLargeNumber(this.getStringLength(6));
+            let title = this.parseString(2);
+            let artist = this.parseString(2);
+            let version = this.parseString(2);
+
+            console.log(`Title: ${title}`);
+            console.log(`Artist: ${artist}`);
+            console.log(`Version: ${version}`);
+
+            let chunksSizes = [
+              base64ToNumber(this.getStringLength(2)),
+              base64ToNumber(this.getStringLength(2)),
+              base64ToNumber(this.getStringLength(2)),
+              base64ToNumber(this.getStringLength(2)),
+            ];
+
+            let noteCounts = [
+                base64ToLargeNumber(this.getStringLength(3)),
+                base64ToLargeNumber(this.getStringLength(3)),
+                base64ToLargeNumber(this.getStringLength(3)),
+                base64ToLargeNumber(this.getStringLength(3)),
+            ]
+
+            let metaDataLength =
+              6 +
+              6 +
+              title.length +
+              artist.length +
+              version.length +
+              2 + // title length header
+              2 + // artist length header
+              2 + // version length header
+              8 + // chunks sizes
+              12; // note counts
+            console.log(`Metadata length: ${metaDataLength}`);
+            res.push(
+              `writeMetaFile("map-${id}.meta", "${mapFile.substring(
+                0,
+                metaDataLength
+              )}");`
+            );
+
+            for (let i = 0; i < 4; ++i) {
+              for (let j = 0; j < chunksSizes[i]; j++) {
+                let chunk = this.parseString(3);
+                res.push(
+                  `writeChunkFile("chunk-${id}-${i}-${j}.chunk", "${chunk}");`
+                );
+              }
+            }
+
+            return res.join("\n");
+          }
+        }
+
+        const osuinoFile = new OSUINOFile();
+        let r = osuinoFile.parse();
+        document.getElementById("chunks").value = r;
+      });
+    </script>
+  </body>
+</html>
