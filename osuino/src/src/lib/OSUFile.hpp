@@ -221,7 +221,7 @@ public:
 
     OsuNote get(int col, int index) {
         int indexChunk = index / 100;
-        if(chunksLoadedFrom[col] > indexChunk || chunksLoadedTo[col] < indexChunk) {
+        if(chunksLoadedTo[col] < indexChunk) {
             loadChunk(col, indexChunk);
         }
         return notes[col].data[index - chunksLoadedFrom[col] * 100];

@@ -201,6 +201,10 @@ public:
         writeChunkFile("chunk-4229428-3-0.chunk", "__ey@__Y1__M9_AFB@_6IB@_0MB@_hQB@_IUB@_vXB@_WbB@_8eB@_jiB@_KmB@_xpB@_YtB@_+wB@_l0B_/2B_pYC@_2fC@_djC_epC_EtC_4xC_S0C_G5C_g7C_TAD_6DD_7JD_hND@_vUD@_jZD_WeD_9hD@_klD@_LpD@_lxD@_M7D@_nDE@_BME@_cUE@_pbE@_3iE@_EqE@_fyE_T3E_s5E_g+E_HCF_7GF_hKF_iQF_JUF_8YF_jcF_kiF_MyF_A3F_Z5F_N+F_nAG_bFG_0HG@_CPG@_3fG_ejG_RoG_FtG_swG_GzG_g1G@_MvL_A0L_b8L@_BAM_CGM_QTM_EYM_GwM@_U3M@_h+M@_7AN@_iEN_WJN_xdN_YhN_ArN_ZtN_O4N@_O+N@_1BO@_pGO@_QKO@_pMO_QQO_EbO@_4fO@_5rO_twO_iBP@_8DP@_XSP@_LXP@_YeP@_ZkP@_MpP@_mrP@_AuP@_awP@_0yP@_CAQ@_DGQ@_3QQ@_RTQ@_rVQ@_4cQ@_SfQ@_snQ@_TrQ@_70Q@_u5Q@_JCR_wFR_ZnR_ArR_01R_b5R_3NS@_RWS@_rYS@");
         writeChunkFile("chunk-4229428-3-1.chunk", "_TiS@_skS@_7xS@_U0S@_u2S@_v8S_WGT_kNT_zgT_NpT_0sT_bwT_oxT_B0T_o3T_14T_P7T_2+T_GkU_0sX@_DAY_rPY_fRa@_GVa@_Gba@_gda@_Ina@_vwa@_Jza@_j7a@_+Db@_YGb@_lNb@_/Pb@_ZSb@_zUb@_MXb@_mZb@_aeb@_bkb@_Opb@_Pvb@_24b@_d8b@_3+b_eIc_FMc@_gUc@_TZc@_tbc@_Ulc@_unc@_Iqc@_jyc@_J2c@_k+c@_+Ad@_YDd@_+Gd@_lKd@_MOd@_mQd_ZVd_Ogd_0jd_Crd@_Qyd@_Q4d@_E9d@_4Be_FJe_GPe@_sSe@_TWe@_6Ze@_Wue@_K5e@_YGf@_ZMf@_AWf@_aYf@_1mf@_Ppf@_Q1f@_R7f@_RBg@_SHg@_gOg@_HYg@_ubg@_Ufg@_7ig@_Vlg@_jsg@_wzg@_+6g@_LCh@_ZJh@_ANh@_mQh@_Oah@_bhh_1jh_cnh_Drh_2vh_dzh_TKi@_tSi@_Uci@_Vii@_8li@_wqi@_5Eo@_hOo@");
         writeChunkFile("chunk-4229428-3-2.chunk", "_uVo@_8co@_8io@_jmo@_kso@_Lwo@_xzo@_Y3o@_y5o@_MCp@_NIp_bPp_CZp@_Qgp@_etp@_Ryp@_F3p@_T+p@_TEq@_6Hq@_7Nq@_iXq@_8Zq@_Wcq@_wkq@_Xoq@_xwq@_Lzq@_Z6q@_z8q@_nHr@_BKr@_ORr@_2ar@_Qdr@_Qjr@_Rvr@_54r@_g8r@_6Es@_uJs@_7Qs@_VTs_lys_m4s@_M8s@_oKt@_bPt@_cVt_Wcu_9fu@_You@_+ru@_Z0u@_A4u@_z8u@_N/u_2Uv_QXv@_qfv@_Eiv@_eqv@_fwv@_54v@_g8v@_bDx@");
+    
+        // test
+        writeMetaFile("map-2461679.meta", "__HOgE__v/YJ_Etest_Etest_Etest___B_________D______");
+        writeChunkFile("chunk-2461679-1-0.chunk", "__+Q@__YU@__xX@");
     }
 };
 #endif

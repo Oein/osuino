@@ -68,7 +68,8 @@ public:
         }
     }
 
-    void clear() {
+    void clear()
+    {
         targetAcc = 0;
         requested = false;
     }
@@ -79,7 +80,8 @@ public:
         requested = true;
         timer.reset();
 
-        if(acc == 0) {
+        if (acc == 0)
+        {
             combo = 0;
             health += _HEALTH_BY_SCORE_[0];
             return;
@@ -106,6 +108,8 @@ public:
     int processFrom = 0;
     int processingLongNoteIndex = -1;
 
+    bool fullyProcessed = false;
+
     Timer longNoteCombo;
 
     IngameLineHandler(CnavasAPI *api, int keyIndex)
@@ -117,53 +121,75 @@ public:
 
     void initlize()
     {
-        for(int i = 0; i < CANVAS_HEIGHT; i++)
+        for (int i = 0; i < CANVAS_HEIGHT; i++)
             rendered[i] = false;
         renderFrom = 0;
         processFrom = 0;
         processingLongNoteIndex = -1;
+        fullyProcessed = false;
+        longNoteCombo.reset();
     }
 
     bool rendered[CANVAS_HEIGHT] = {
         false,
     };
 
-    void handleDraw(int from, int to, bool fill) {
-        if(from < 0) return;
-        if(to >= CANVAS_HEIGHT) return;
+    void handleDraw(int from, int to, bool fill)
+    {
+        if (from < 0)
+            return;
+        if (to >= CANVAS_HEIGHT)
+            return;
 
-        if(fill) {
+        if (fill)
+        {
             api->drawRect(keyX, from, CANVAS_WIDTH / 4, to - from + 1, NOTE_COLORS[keyIndex]);
-        } else {
+        }
+        else
+        {
             api->drawRect(keyX, from, CANVAS_WIDTH / 4, to - from + 1, COLOR_BLACK);
         }
     }
 
-    void processAccu(int accu) {
+    void processAccu(int accu)
+    {
         accuracyViewer->setTargetAcc(accu);
         gameResult.processMaxCombo(combo);
     }
 
-    int getAccuFromTime(int delta, float multiplier = 1.0) {
+    int getAccuFromTime(int delta, float multiplier = 1.0)
+    {
         int time = abs(delta);
-        if(time <= multiplier * _JUDGE_MAX_100_) return 100;
-        if(time <= multiplier * _JUDGE_MAX_90_) return 90;
-        if(time <= multiplier * _JUDGE_MAX_80_) return 80;
-        if(time <= multiplier * _JUDGE_MAX_70_) return 70;
-        if(time <= multiplier * _JUDGE_MAX_60_) return 60;
-        if(time <= multiplier * _JUDGE_MAX_50_) return 50;
-        if(time <= multiplier * _JUDGE_MAX_40_) return 40;
-        if(time <= multiplier * _JUDGE_MAX_30_) return 30;
-        if(time <= multiplier * _JUDGE_MAX_20_) return 20;
-        if(time <= multiplier * _JUDGE_MAX_10_) return 10;
+        if (time <= multiplier * _JUDGE_MAX_100_)
+            return 100;
+        if (time <= multiplier * _JUDGE_MAX_90_)
+            return 90;
+        if (time <= multiplier * _JUDGE_MAX_80_)
+            return 80;
+        if (time <= multiplier * _JUDGE_MAX_70_)
+            return 70;
+        if (time <= multiplier * _JUDGE_MAX_60_)
+            return 60;
+        if (time <= multiplier * _JUDGE_MAX_50_)
+            return 50;
+        if (time <= multiplier * _JUDGE_MAX_40_)
+            return 40;
+        if (time <= multiplier * _JUDGE_MAX_30_)
+            return 30;
+        if (time <= multiplier * _JUDGE_MAX_20_)
+            return 20;
+        if (time <= multiplier * _JUDGE_MAX_10_)
+            return 10;
         return 0;
     }
 
-    void processLongNote(int time, IngameButtonType btn) {
+    void processLongNote(int time, IngameButtonType btn)
+    {
         // 롱노트 처리 중인 상태임
 
         int noteDeleteTime = NMAP.get(keyIndex, processingLongNoteIndex).endtime + _NOTE_LATE_ALLOWANCE_;
-        if(noteDeleteTime < time) {
+        if (noteDeleteTime < time)
+        {
             // 롱노트가 이미 지나감
             processAccu(0);
             gameResult.processLongNoteEnd(keyIndex, 0);
@@ -176,16 +202,19 @@ public:
         }
 
         int delta = NMAP.get(keyIndex, processingLongNoteIndex).endtime - time;
-        if(btn == IngameButtonType::HOLDING) {
+        if (btn == IngameButtonType::HOLDING)
+        {
             // 롱노트를 계속 누르고 있음
-            if(longNoteCombo.deltaTime() > _LONG_NOTE_COMBO_STACK_MS_) {
+            if (longNoteCombo.deltaTime() > _LONG_NOTE_COMBO_STACK_MS_)
+            {
                 longNoteCombo.reset();
                 combo++;
             }
             return;
         }
 
-        if(btn == IngameButtonType::RELEASED) {
+        if (btn == IngameButtonType::RELEASED)
+        {
             // 롱노트를 놓음
 #ifdef _PRINT_EARLY_LATE_MS_
             printf("Line %d, Long note released %dms\n", keyIndex, delta);
@@ -198,22 +227,28 @@ public:
         }
     }
 
-    void processKeypress(int time) {
+    void processKeypress(int time)
+    {
         IngameButtonType btn = igbtn.get(buttonPressed(keyIndex));
-        if(processingLongNoteIndex != -1) return processLongNote(time, btn);
+        if (processingLongNoteIndex != -1)
+            return processLongNote(time, btn);
 
         // 아직 아무것도 관여되어있지 않음.
-        for(int i = processFrom; i < NMAP.colNotesCount[keyIndex]; i++) {
+        for (int i = processFrom; i < NMAP.colNotesCount[keyIndex]; i++)
+        {
             bool isLongNote = NMAP.get(keyIndex, i).endtime > 0;
-            if(NMAP.get(keyIndex, i).time > time + CANVAS_HEIGHT * _NOTE_PIXEL_PER_MS_) {
+            if (NMAP.get(keyIndex, i).time > time + CANVAS_HEIGHT * _NOTE_PIXEL_PER_MS_)
+            {
                 // 아직 노트가 안나왔음
                 break;
             }
 
             int noteDeleteTime = (isLongNote ? NMAP.get(keyIndex, i).endtime : NMAP.get(keyIndex, i).time) + _NOTE_LATE_ALLOWANCE_;
-            if(noteDeleteTime < time) {
+            if (noteDeleteTime < time)
+            {
                 // 노트가 이미 지나감
                 processAccu(0);
+                gameResult.processSingleNoteScore(0);
                 processFrom = i + 1;
 #ifdef _PRINT_NOTE_MISSED_
                 printf("Line %d: Note missed\n", keyIndex);
@@ -222,10 +257,12 @@ public:
             }
 
             // 노트를 눌르지 않을경우 아무 처리도 하지 않음
-            if(btn != IngameButtonType::JUST_PRESSED) continue;
+            if (btn != IngameButtonType::JUST_PRESSED)
+                continue;
 
             int delta = NMAP.get(keyIndex, i).time - time;
-            if(delta > _NOTE_IGNORE_DELTA_) {
+            if (delta > _NOTE_IGNORE_DELTA_)
+            {
                 // 노트가 아직 너무 먼 곳에 있음
                 break;
             }
@@ -233,8 +270,10 @@ public:
             printf("Line %d, Note pressed %dms\n", keyIndex, delta);
 #endif
             int accu = getAccuFromTime(delta);
-            if(isLongNote) {
-                if(accu == 0) {
+            if (isLongNote)
+            {
+                if (accu == 0)
+                {
                     // 롱노트를 놓침
                     processAccu(0);
                     processFrom = i + 1;
@@ -262,10 +301,15 @@ public:
         NMAP.unload(keyIndex, renderFrom);
         processKeypress(time);
 
-        if(processingLongNoteIndex != -1) {
-            if(renderFrom < processingLongNoteIndex) renderFrom = processingLongNoteIndex;
-        } else {
-            if(renderFrom < processFrom) renderFrom = processFrom;
+        if (processingLongNoteIndex != -1)
+        {
+            if (renderFrom < processingLongNoteIndex)
+                renderFrom = processingLongNoteIndex;
+        }
+        else
+        {
+            if (renderFrom < processFrom)
+                renderFrom = processFrom;
         }
 
 #ifndef _RENDER_EVERY_FRAME_
@@ -274,36 +318,42 @@ public:
         };
 #endif
 
-        for(int i = renderFrom;i < NMAP.colNotesCount[keyIndex]; i++) {
+        for (int i = renderFrom; i < NMAP.colNotesCount[keyIndex]; i++)
+        {
             bool isLongNote = NMAP.get(keyIndex, i).endtime > 0;
 
             // single note
             int noteY = _NOTE_END_Y_ - (NMAP.get(keyIndex, i).time - time) * _NOTE_PIXEL_PER_MS_;
             int noteH = _SINGLE_NOTE_HEIGHT_;
 
-            if(isLongNote) {
+            if (isLongNote)
+            {
                 noteY = _NOTE_END_Y_ - (NMAP.get(keyIndex, i).endtime - time) * _NOTE_PIXEL_PER_MS_;
                 noteH = (NMAP.get(keyIndex, i).endtime - NMAP.get(keyIndex, i).time) * _NOTE_PIXEL_PER_MS_;
             }
 
-            if(noteY + noteH <= 0) {
+            if (noteY + noteH <= 0)
+            {
                 // 노트의 끝이 화면에 들어오지 않음
                 break;
             }
 
-            if(noteY < 0) {
+            if (noteY < 0)
+            {
                 // 노트가 화면 위에 걸침
                 noteH += noteY;
                 noteY = 0;
             }
 
-            if(noteY >= CANVAS_HEIGHT) {
+            if (noteY >= CANVAS_HEIGHT)
+            {
                 // 노트가 화면 밖에 있음
                 renderFrom = i + 1;
                 continue;
             }
 
-            if(noteY + noteH >= CANVAS_HEIGHT) {
+            if (noteY + noteH >= CANVAS_HEIGHT)
+            {
                 // 노트가 화면 아래에 걸침
                 noteH = CANVAS_HEIGHT - noteY;
             }
@@ -312,14 +362,15 @@ public:
             assert(noteH > 0 && noteY + noteH <= CANVAS_HEIGHT);
 
 #ifndef _RENDER_EVERY_FRAME_
-            for(int j = noteY; j < noteY + noteH && j < CANVAS_HEIGHT; j++) {
+            for (int j = noteY; j < noteY + noteH && j < CANVAS_HEIGHT; j++)
+            {
                 newRendered[j] = true;
             }
 #else
             api->drawRect(keyX, noteY, CANVAS_WIDTH / 4, noteH, NOTE_COLORS[keyIndex]);
-    #ifdef _DRAW_NOTE_INDEX_
+#ifdef _DRAW_NOTE_INDEX_
             api->drawTextTopLeft(keyX + 5, noteY + 5, int2string(i) + "(" + int2string(i / 100) + ")", COLOR_BLACK);
-    #endif
+#endif
 #endif
         }
 
@@ -327,16 +378,20 @@ public:
         int seqStart = -1;
         int seqEnd = -1;
         bool seqData = false;
-        for(int i = 0; i < CANVAS_HEIGHT; i++) {
-            if(newRendered[i] != rendered[i]) {
+        for (int i = 0; i < CANVAS_HEIGHT; i++)
+        {
+            if (newRendered[i] != rendered[i])
+            {
                 rendered[i] = newRendered[i];
-                if(seqStart == -1) {
+                if (seqStart == -1)
+                {
                     seqData = newRendered[i];
                     seqStart = i;
                     seqEnd = i;
                     continue;
                 }
-                if(seqData != newRendered[i]) {
+                if (seqData != newRendered[i])
+                {
                     handleDraw(seqStart, seqEnd, seqData);
                     seqStart = i;
                     seqEnd = i;
@@ -344,11 +399,12 @@ public:
                     continue;
                 }
                 seqEnd = i;
-                
+
                 continue;
             }
 
-            if(seqStart != -1) {
+            if (seqStart != -1)
+            {
                 handleDraw(seqStart, seqEnd, seqData);
                 seqStart = -1;
                 seqEnd = -1;
@@ -358,6 +414,21 @@ public:
 
         handleDraw(seqStart, seqEnd, seqData);
 #endif
+
+        fullyProcessed = processingLongNoteIndex != -1 && processFrom >= NMAP.colNotesCount[keyIndex];
+        // printf("Line %d, PLI %d PF %d NT %d DT %d  ", keyIndex, processingLongNoteIndex, processFrom, NMAP.colNotesCount[keyIndex], deltaNextNote(time));
+        // if (keyIndex == 3)
+        //     printf("\n");
+    }
+
+    int deltaNextNote(int time)
+    {
+        // 다음 노트까지의 시간을 반환
+        if (NMAP.colNotesCount[keyIndex] == 0)
+            return 1234567890;
+        if (processFrom == NMAP.colNotesCount[keyIndex])
+            return 1234567890;
+        return NMAP.get(keyIndex, renderFrom).time - time;
     }
 };
 
@@ -368,6 +439,10 @@ public:
     Timer timer;
     IngameLineHandler *lineHandlers[4];
     LoadingScene *loadingScene;
+
+    Timer resultTimer;
+    bool resultTimerStarted = false;
+
     IngameScene(CnavasAPI *api)
     {
         this->api = api;
@@ -380,6 +455,10 @@ public:
     }
 
     DeltaTime deltaTime;
+#ifndef _RENDER_EVERY_FRAME_
+    int lastRenderedNEXT_DELTA = 0;
+#endif
+    bool nextNoteDeltaShown = false;
 
     void render()
     {
@@ -387,9 +466,58 @@ public:
         api->clear();
 #endif
         int deltaTime = this->timer.deltaTime();
+        bool fullyProcessed = true;
+
+        int deltaNextNote = 1234567890;
+
         for (int i = 0; i < 4; i++)
         {
             lineHandlers[i]->render(deltaTime);
+            fullyProcessed &= lineHandlers[i]->fullyProcessed;
+            if (deltaNextNote > lineHandlers[i]->deltaNextNote(deltaTime))
+            {
+                deltaNextNote = lineHandlers[i]->deltaNextNote(deltaTime);
+            }
+        }
+
+        if ((fullyProcessed || deltaNextNote == 1234567890) && resultTimerStarted)
+        {
+            if (resultTimer.deltaTime() > 3000)
+            {
+                currentScene = Scene::Result;
+            }
+        }
+        if ((fullyProcessed || deltaNextNote == 1234567890) && !resultTimerStarted)
+        {
+            resultTimerStarted = true;
+            resultTimer.reset();
+        }
+
+        if (deltaTime != 1234567890 && (deltaNextNote >= _NOTE_SPEED_ || nextNoteDeltaShown))
+        {
+            nextNoteDeltaShown = true;
+            if (deltaNextNote < _NOTE_SPEED_)
+            {
+                nextNoteDeltaShown = false;
+            }
+            else
+            {
+#ifndef _RENDER_EVERY_FRAME_
+                if (lastRenderedNEXT_DELTA != (int)(deltaNextNote / 100))
+                {
+                    lastRenderedNEXT_DELTA = (int)(deltaNextNote / 100);
+#endif
+                    float nextNote = deltaNextNote / 1000.0;
+                    int n1 = (int)nextNote;
+                    int n2 = (int)((nextNote - n1) * 10);
+                    if(n1 != 1234567 && n2 != 8) {
+                        api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + 26, "Get ready", COLOR_WHITE);
+                        api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ + 52, int2string(n1) + "." + int2string(n2), COLOR_WHITE);
+                    }
+#ifndef _RENDER_EVERY_FRAME_
+                }
+#endif
+            }
         }
 
         // 판정선 그리기
@@ -454,6 +582,7 @@ public:
         gameResult.clear();
         accuracyViewer->clear();
         gameResult.setAllnotes(NMAP.colNotesCount[0] + NMAP.colNotesCount[1] + NMAP.colNotesCount[2] + NMAP.colNotesCount[3]);
+        resultTimerStarted = false;
 #ifdef _PRINTF_INFO_
         printf("Scene:Ingame - Initlized\n");
 #endif

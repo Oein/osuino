@@ -4,15 +4,15 @@ private:
     int longNoteAcc[4] = {0, 0, 0, 0};
 public:
     bool isWin;
-    int score = 933819;
     int maxCombo;
-    int accu = 0;
+    unsigned long accu = 0;
     int accuCount = 0;
 
     void clear() {
         isWin = false;
-        score = 0;
         maxCombo = 0;
+        accu = 0;
+        accuCount = 0;
     }
 
     void setAllnotes(int allNotes) {
@@ -20,7 +20,6 @@ public:
     }
 
     void processSingleNoteScore(int acc) {
-        score += FULLSCORE / allNotes * acc / 100;
         processAccuracy(acc);
     }
 
@@ -38,12 +37,16 @@ public:
     }
 
     void processAccuracy(int acc) {
-        accu += acc / 10;
+        accu += acc;
         accuCount++;
     }
 
     float getAccuracy() {
-        return (float)accu / accuCount * 10;
+        return (float)accu / accuCount;
+    }
+    
+    int getScore() {
+        return FULLSCORE * accu / allNotes / 100;
     }
 };
 
@@ -77,11 +80,11 @@ public:
         // draw rank string in the triangle(large)
         api->drawCircle(CANVAS_WIDTH / 5, 110, CANVAS_WIDTH / 7, COLOR_WHITE);
         api->drawCircle(CANVAS_WIDTH / 5, 110, CANVAS_WIDTH / 7 * 0.9, COLOR_OSU);
-        api->drawOsuLogoText(CANVAS_WIDTH / 5, 110, getRankString(gameResult.score), COLOR_WHITE);
+        api->drawOsuLogoText(CANVAS_WIDTH / 5, 110, getRankString(gameResult.getScore()), COLOR_WHITE);
 
         // draw score
         api->drawTextTopLeft(CANVAS_WIDTH / 2, 80, "Score", COLOR_WHITE);
-        api->drawOsuLogoTextTopLeft(CANVAS_WIDTH / 2, 110, ul2string(gameResult.score), COLOR_WHITE);
+        api->drawOsuLogoTextTopLeft(CANVAS_WIDTH / 2, 110, ul2string(gameResult.getScore()), COLOR_WHITE);
 
         // draw max combo
         api->drawTextTopLeft(CANVAS_WIDTH / 2, 150, "Max Combo", COLOR_WHITE);

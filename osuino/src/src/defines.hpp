@@ -7,13 +7,13 @@
 // 노트가 미스된경우 콘솔에 출력
 #undef _PRINT_NOTE_MISSED_
 // 노트 인덱스를 노트위에 작성합니다. _RENDER_EVERY_FRAME_가 활성화 되어야 합니다.
-#define _DRAW_NOTE_INDEX_
+#undef _DRAW_NOTE_INDEX_
 // FPS를 화면에 그립니다.
 #undef _DRAW_FPS_
 // info 수준의 로그를 출력합니다.
-#define _PRINTF_INFO_
+#undef _PRINTF_INFO_
 // 맵 로딩 로그를 출력합니다.
-#define _PRINTF_MAP_LOAD_INFO_
+#undef _PRINTF_MAP_LOAD_INFO_
 // 노트 판정 시간을 출력합니다.
 #undef _PRINT_EARLY_LATE_MS_
 // 파일 시스템 로그를 출력합니다.
@@ -23,7 +23,7 @@
 // 죽지 않습니다.
 #undef _NO_DIE_
 // 모든 동작 사이 애니메이션을 끕니다, 아두이노에서는 필수 입니다.
-#define _DO_NOT_ANIMATE_
+#undef _DO_NOT_ANIMATE_
 // API를 모킹합니다.
 #define _API_MOCK_
 // 퍼펙트 플레이를 달성했을떄의 점수
