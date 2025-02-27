@@ -63,6 +63,11 @@ IStringType ul2string(unsigned long num)
     return String(num);
 }
 
+IStringType float2string(float num)
+{
+    return String(num);
+}
+
 int largest(int a, int b)
 {
     return a > b ? a : b;

@@ -120,7 +120,7 @@ public:
         }
         if(last2Button != pressed[2]) {
             last2Button = pressed[2];
-            if(last2Button) {
+            if(!last2Button) {
                 IStringType key = keys[cursor];
 
                 if(key == "OK") {

@@ -55,6 +55,11 @@ IStringType char2string(char chr)
     return std::string(1, chr);
 }
 
+IStringType float2string(float num)
+{
+    return std::to_string(num);
+}
+
 int largest(int a, int b)
 {
     return a > b ? a : b;

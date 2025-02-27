@@ -303,6 +303,21 @@ public:
     std::vector<OSUBeatmapItem> maps;
 };
 
+class OSUBeatResponseItem
+{
+public:
+    IStringType title;
+    IStringType artist;
+    OSUBeatmapItem map;
+
+    OSUBeatResponseItem(IStringType title, IStringType artist, OSUBeatmapItem map)
+    {
+        this->title = title;
+        this->artist = artist;
+        this->map = map;
+    }
+};
+
 #define IOSUMapResponse NetworkResponse<std::vector<OSUMapResponseItem>>
 
 class OSUAPI
