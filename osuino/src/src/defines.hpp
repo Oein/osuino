@@ -26,6 +26,8 @@
 #define _DO_NOT_ANIMATE_
 // API를 모킹합니다.
 #define _API_MOCK_
+// 퍼펙트 플레이를 달성했을떄의 점수
+#define FULLSCORE 1000000.0
 
 #ifdef _IS_ARDUINO_
 #undef _RENDER_EVERY_FRAME_

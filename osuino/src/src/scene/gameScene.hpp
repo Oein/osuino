@@ -40,6 +40,7 @@ public:
     CnavasAPI *api;
     int targetAcc = 0;
     bool requested = false;
+
     Timer timer;
 
     AccuracyViewer(CnavasAPI *api)
@@ -65,6 +66,11 @@ public:
             else
                 api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
         }
+    }
+
+    void clear() {
+        targetAcc = 0;
+        requested = false;
     }
 
     void setTargetAcc(int acc)
@@ -135,6 +141,7 @@ public:
 
     void processAccu(int accu) {
         accuracyViewer->setTargetAcc(accu);
+        gameResult.processMaxCombo(combo);
     }
 
     int getAccuFromTime(int delta, float multiplier = 1.0) {
@@ -159,6 +166,7 @@ public:
         if(noteDeleteTime < time) {
             // 롱노트가 이미 지나감
             processAccu(0);
+            gameResult.processLongNoteEnd(keyIndex, 0);
             processFrom = processingLongNoteIndex + 1;
             processingLongNoteIndex = -1;
 #ifdef _PRINT_NOTE_MISSED_
@@ -183,6 +191,7 @@ public:
             printf("Line %d, Long note released %dms\n", keyIndex, delta);
 #endif
             processAccu(getAccuFromTime(delta, 2));
+            gameResult.processLongNoteEnd(keyIndex, getAccuFromTime(delta, 2));
             processFrom = processingLongNoteIndex + 1;
             processingLongNoteIndex = -1;
             return;
@@ -233,6 +242,7 @@ public:
                 }
                 // 롱노트를 누름
                 processAccu(accu);
+                gameResult.processLongNoteStart(keyIndex, accu);
                 processingLongNoteIndex = i;
                 longNoteCombo.reset();
                 break;
@@ -240,6 +250,7 @@ public:
 
             // single note
             processAccu(accu);
+            gameResult.processSingleNoteScore(accu);
             // 이번 틱에서 버튼 누름은 처리했기에 다음 노트까지 신경을 쓰지 않음
             processFrom = i + 1;
             break;
@@ -440,6 +451,9 @@ public:
         combo = 0;
         deltaTime.deltaTime();
         api->clear();
+        gameResult.clear();
+        accuracyViewer->clear();
+        gameResult.setAllnotes(NMAP.colNotesCount[0] + NMAP.colNotesCount[1] + NMAP.colNotesCount[2] + NMAP.colNotesCount[3]);
 #ifdef _PRINTF_INFO_
         printf("Scene:Ingame - Initlized\n");
 #endif

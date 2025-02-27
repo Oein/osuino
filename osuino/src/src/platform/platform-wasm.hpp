@@ -193,6 +193,16 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 
+    void drawOsuLogoTextTopLeft(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
+    {
+        EM_ASM_({
+            Module.ctx.font = '26pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); }, text.c_str(), x, y, color);
+    }
+
     void drawOsuLogoTextSmaller(int x, int y, IStringType text, IColorType color = COLOR_WHITE)
     {
         EM_ASM_({
