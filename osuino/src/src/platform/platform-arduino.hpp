@@ -43,6 +43,11 @@ int string2int(IStringType str)
     return str.toInt();
 }
 
+float string2float(IStringType str)
+{
+    return str.toFloat();
+}
+
 IStringType int2string(int num)
 {
     return String(num);

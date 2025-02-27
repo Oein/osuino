@@ -17,8 +17,8 @@
 
 int main()
 {
-    input.api = &api;
-    input.requestInput();
+    input.api = &canvasAPI;
+    osuapi.search("");
 #ifdef _PRINTF_INFO_
     printf("============================\n");
     printf("OSUino started\n");

@@ -20,7 +20,9 @@ FS fsapi;
 #include "./lib/libKey.hpp"
 #include "./lib/OSUFile.hpp"
 #include "./lib/libKeyboard.hpp"
+#include "./lib/libAPI.hpp"
 
+OSUAPI osuapi;
 Input input;
 
 bool _GLOBAL_MAP_SD_MODIFIED_ = true;
@@ -36,14 +38,14 @@ bool _GLOBAL_MAP_SD_MODIFIED_ = true;
 
 // MARK: - Main Data Structures
 
-CnavasAPI api;
-IntroScene *introScene = new IntroScene(&api);
-TitleScene titleScene(&api);
-SelectScene selectScene(&api);
-IngameScene ingameScene(&api);
-ResultScene resultScene(&api);
-OptionsScene optionsScene(&api);
-DownloadScene downloadScene(&api);
+CnavasAPI canvasAPI;
+IntroScene *introScene = new IntroScene(&canvasAPI);
+TitleScene titleScene(&canvasAPI);
+SelectScene selectScene(&canvasAPI);
+IngameScene ingameScene(&canvasAPI);
+ResultScene resultScene(&canvasAPI);
+OptionsScene optionsScene(&canvasAPI);
+DownloadScene downloadScene(&canvasAPI);
 Scene lastRendered = Scene::Intro;
 
 void updateSubcall()

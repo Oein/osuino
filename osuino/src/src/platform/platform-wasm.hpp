@@ -35,6 +35,11 @@ int string2int(IStringType str)
     return std::stoi(str);
 }
 
+float string2float(IStringType str)
+{
+    return std::stof(str);
+}
+
 IStringType int2string(int num)
 {
     return std::to_string(num);

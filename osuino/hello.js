@@ -133,7 +133,7 @@ if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
   if (scriptDirectory.startsWith('blob:')) {
     scriptDirectory = '';
   } else {
-    scriptDirectory = scriptDirectory.slice(0, scriptDirectory.replace(/[?#].*/, '').lastIndexOf('/')+1);
+    scriptDirectory = scriptDirectory.substr(0, scriptDirectory.replace(/[?#].*/, '').lastIndexOf('/')+1);
   }
 
   if (!(typeof window == 'object' || typeof WorkerGlobalScope != 'undefined')) throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
@@ -218,7 +218,7 @@ legacyModuleProp('asm', 'wasmExports');
 legacyModuleProp('readAsync', 'readAsync');
 legacyModuleProp('readBinary', 'readBinary');
 legacyModuleProp('setWindowTitle', 'setWindowTitle');
-var IDBFS = 'IDBFS is no longer included by default; build with -lidbfs.js';
+
 var PROXYFS = 'PROXYFS is no longer included by default; build with -lproxyfs.js';
 var WORKERFS = 'WORKERFS is no longer included by default; build with -lworkerfs.js';
 var FETCHFS = 'FETCHFS is no longer included by default; build with -lfetchfs.js';
@@ -312,12 +312,22 @@ var HEAP,
 
 var runtimeInitialized = false;
 
+// include: URIUtils.js
+// Prefix of data URIs emitted by SINGLE_FILE and related options.
+var dataURIPrefix = 'data:application/octet-stream;base64,';
+
+/**
+ * Indicates whether filename is a base64 data URI.
+ * @noinline
+ */
+var isDataURI = (filename) => filename.startsWith(dataURIPrefix);
+
 /**
  * Indicates whether filename is delivered via file protocol (as opposed to http/https)
  * @noinline
  */
 var isFileURI = (filename) => filename.startsWith('file://');
-
+// end include: URIUtils.js
 // include: runtime_shared.js
 // include: runtime_stack_check.js
 // Initializes the stack cookie. Called at the startup of main and at the startup of each thread in pthreads mode.
@@ -504,6 +514,12 @@ assert(typeof Int32Array != 'undefined' && typeof Float64Array !== 'undefined' &
 assert(!Module['wasmMemory'], 'Use of `wasmMemory` detected.  Use -sIMPORTED_MEMORY to define wasmMemory externally');
 assert(!Module['INITIAL_MEMORY'], 'Detected runtime INITIAL_MEMORY setting.  Use -sIMPORTED_MEMORY to define wasmMemory dynamically');
 
+var __ATPRERUN__  = []; // functions called before the runtime is initialized
+var __ATINIT__    = []; // functions called during startup
+var __ATMAIN__    = []; // functions called when main() is to be run
+var __ATEXIT__    = []; // functions called during shutdown
+var __ATPOSTRUN__ = []; // functions called after the main() is called
+
 function preRun() {
   if (Module['preRun']) {
     if (typeof Module['preRun'] == 'function') Module['preRun'] = [Module['preRun']];
@@ -511,7 +527,7 @@ function preRun() {
       addOnPreRun(Module['preRun'].shift());
     }
   }
-  callRuntimeCallbacks(onPreRuns);
+  callRuntimeCallbacks(__ATPRERUN__);
 }
 
 function initRuntime() {
@@ -520,17 +536,19 @@ function initRuntime() {
 
   checkStackCookie();
 
-  if (!Module['noFSInit'] && !FS.initialized) FS.init();
+  
+if (!Module['noFSInit'] && !FS.initialized)
+  FS.init();
+FS.ignorePermissions = false;
+
 TTY.init();
-
-  wasmExports['__wasm_call_ctors']();
-
-  FS.ignorePermissions = false;
+  callRuntimeCallbacks(__ATINIT__);
 }
 
 function preMain() {
   checkStackCookie();
   
+  callRuntimeCallbacks(__ATMAIN__);
 }
 
 function postRun() {
@@ -543,7 +561,26 @@ function postRun() {
     }
   }
 
-  callRuntimeCallbacks(onPostRuns);
+  callRuntimeCallbacks(__ATPOSTRUN__);
+}
+
+function addOnPreRun(cb) {
+  __ATPRERUN__.unshift(cb);
+}
+
+function addOnInit(cb) {
+  __ATINIT__.unshift(cb);
+}
+
+function addOnPreMain(cb) {
+  __ATMAIN__.unshift(cb);
+}
+
+function addOnExit(cb) {
+}
+
+function addOnPostRun(cb) {
+  __ATPOSTRUN__.unshift(cb);
 }
 
 // A counter of dependencies for calling run(). If we need to
@@ -670,7 +707,11 @@ function createExportWrapper(name, nargs) {
 
 var wasmBinaryFile;
 function findWasmBinary() {
-    return locateFile('hello.wasm');
+    var f = 'hello.wasm';
+    if (!isDataURI(f)) {
+      return locateFile(f);
+    }
+    return f;
 }
 
 function getBinarySync(file) {
@@ -685,7 +726,8 @@ function getBinarySync(file) {
 
 async function getWasmBinary(binaryFile) {
   // If we don't have the binary yet, load it asynchronously using readAsync.
-  if (!wasmBinary) {
+  if (!wasmBinary
+      ) {
     // Fetch the binary using readAsync
     try {
       var response = await readAsync(binaryFile);
@@ -716,7 +758,9 @@ async function instantiateArrayBuffer(binaryFile, imports) {
 }
 
 async function instantiateAsync(binary, binaryFile, imports) {
-  if (!binary && typeof WebAssembly.instantiateStreaming == 'function'
+  if (!binary &&
+      typeof WebAssembly.instantiateStreaming == 'function' &&
+      !isDataURI(binaryFile)
       // Don't use streaming for file:// delivered objects in a webview, fetch them synchronously.
       && !isFileURI(binaryFile)
       // Avoid instantiateStreaming() on Node.js environment for now, as while
@@ -771,6 +815,8 @@ async function createWasm() {
     
     assert(wasmTable, 'table not found in wasm exports');
 
+    addOnInit(wasmExports['__wasm_call_ctors']);
+
     removeRunDependency('wasm-instantiate');
     return wasmExports;
   }
@@ -801,17 +847,12 @@ async function createWasm() {
   // Also pthreads and wasm workers initialize the wasm instance through this
   // path.
   if (Module['instantiateWasm']) {
-    return new Promise((resolve, reject) => {
-      try {
-        Module['instantiateWasm'](info, (mod, inst) => {
-          receiveInstance(mod, inst);
-          resolve(mod.exports);
-        });
-      } catch(e) {
-        err(`Module.instantiateWasm callback failed with error: ${e}`);
-        reject(e);
-      }
-    });
+    try {
+      return Module['instantiateWasm'](info, receiveInstance);
+    } catch(e) {
+      err(`Module.instantiateWasm callback failed with error: ${e}`);
+        return false;
+    }
   }
 
   wasmBinaryFile ??= findWasmBinary();
@@ -824,22 +865,22 @@ async function createWasm() {
 // === Body ===
 
 var ASM_CONSTS = {
-  30976: ($0, $1, $2, $3) => { Module.k0 = document.getElementById("k0"); Module.k1 = document.getElementById("k1"); Module.k2 = document.getElementById("k2"); Module.k3 = document.getElementById("k3"); Module.k0.style.background = $0 ? "red" : "black"; Module.k1.style.background = $1 ? "red" : "black"; Module.k2.style.background = $2 ? "red" : "black"; Module.k3.style.background = $3 ? "red" : "black"; },  
- 31356: () => { Module.canvas = document.getElementById('canvas'); Module.canvas.width = 320; Module.canvas.height = 480; Module.canvas.style.backgroundColor = 'black'; Module.ctx = Module.canvas.getContext('2d'); },  
- 31554: () => { Module.ctx.clearRect(0, 0, Module.canvas.width, Module.canvas.height); },  
- 31625: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 32010: ($0, $1, $2, $3, $4) => { Module.ctx.fillStyle = 'rgb(' + ($4 >> 16) + ',' + (($4 >> 8) & 0xFF) + ',' + ($4 & 0xFF) + ')'; Module.ctx.fillRect($0, $1, $2, $3); },  
- 32148: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 32533: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
- 32871: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 33398: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 33925: ($0, $1, $2, $3) => { Module.ctx.font = '10pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
- 34263: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 34648: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.fillStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.fill(); },  
- 34873: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.strokeStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.closePath(); Module.ctx.stroke(); },  
- 35126: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
- 35511: ($0, $1, $2, $3) => { Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.arc($0, $1, $2, 0, 2 * Math.PI); Module.ctx.fill(); },  
- 35699: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }
+  33888: ($0, $1, $2, $3) => { Module.k0 = document.getElementById("k0"); Module.k1 = document.getElementById("k1"); Module.k2 = document.getElementById("k2"); Module.k3 = document.getElementById("k3"); Module.k0.style.background = $0 ? "red" : "black"; Module.k1.style.background = $1 ? "red" : "black"; Module.k2.style.background = $2 ? "red" : "black"; Module.k3.style.background = $3 ? "red" : "black"; },  
+ 34268: () => { Module.canvas = document.getElementById('canvas'); Module.canvas.width = 320; Module.canvas.height = 480; Module.canvas.style.backgroundColor = 'black'; Module.ctx = Module.canvas.getContext('2d'); },  
+ 34466: () => { Module.ctx.clearRect(0, 0, Module.canvas.width, Module.canvas.height); },  
+ 34537: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 34922: ($0, $1, $2, $3, $4) => { Module.ctx.fillStyle = 'rgb(' + ($4 >> 16) + ',' + (($4 >> 8) & 0xFF) + ',' + ($4 & 0xFF) + ')'; Module.ctx.fillRect($0, $1, $2, $3); },  
+ 35060: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 35445: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
+ 35783: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 36310: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillStyle = 'rgb(0, 0, 0)'; Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10); Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 36837: ($0, $1, $2, $3) => { Module.ctx.font = '10pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2); },  
+ 37175: ($0, $1, $2, $3) => { Module.ctx.font = '26pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 37560: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.fillStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.fill(); },  
+ 37785: ($0, $1, $2, $3, $4, $5, $6) => { Module.ctx.strokeStyle = 'rgb(' + ($6 >> 16) + ',' + (($6 >> 8) & 0xFF) + ',' + ($6 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.moveTo($0, $1); Module.ctx.lineTo($2, $3); Module.ctx.lineTo($4, $5); Module.ctx.closePath(); Module.ctx.stroke(); },  
+ 38038: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); },  
+ 38423: ($0, $1, $2, $3) => { Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; Module.ctx.beginPath(); Module.ctx.arc($0, $1, $2, 0, 2 * Math.PI); Module.ctx.fill(); },  
+ 38611: ($0, $1, $2, $3) => { Module.ctx.font = '13pt Arial'; Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')'; var measure = Module.ctx.measureText(UTF8ToString($0)); var textWidth = measure.width; var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent; Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }
 };
 
 // end include: preamble.js
@@ -859,12 +900,6 @@ var ASM_CONSTS = {
         callbacks.shift()(Module);
       }
     };
-  var onPostRuns = [];
-  var addOnPostRun = (cb) => onPostRuns.unshift(cb);
-
-  var onPreRuns = [];
-  var addOnPreRun = (cb) => onPreRuns.unshift(cb);
-
 
   
     /**
@@ -1116,7 +1151,7 @@ var ASM_CONSTS = {
       },
   normalize:(path) => {
         var isAbsolute = PATH.isAbs(path),
-            trailingSlash = path.slice(-1) === '/';
+            trailingSlash = path.substr(-1) === '/';
         // Normalize the path
         path = PATH.normalizeArray(path.split('/').filter((p) => !!p), !isAbsolute).join('/');
         if (!path && !isAbsolute) {
@@ -1137,7 +1172,7 @@ var ASM_CONSTS = {
         }
         if (dir) {
           // It has a dirname, strip trailing slash
-          dir = dir.slice(0, -1);
+          dir = dir.substr(0, dir.length - 1);
         }
         return root + dir;
       },
@@ -1183,8 +1218,8 @@ var ASM_CONSTS = {
         return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
       },
   relative:(from, to) => {
-        from = PATH_FS.resolve(from).slice(1);
-        to = PATH_FS.resolve(to).slice(1);
+        from = PATH_FS.resolve(from).substr(1);
+        to = PATH_FS.resolve(to).substr(1);
         function trim(arr) {
           var start = 0;
           for (; start < arr.length; start++) {
@@ -1289,13 +1324,13 @@ var ASM_CONSTS = {
       return outIdx - startIdx;
     };
   /** @type {function(string, boolean=, number=)} */
-  var intArrayFromString = (stringy, dontAddNull, length) => {
-      var len = length > 0 ? length : lengthBytesUTF8(stringy)+1;
-      var u8array = new Array(len);
-      var numBytesWritten = stringToUTF8Array(stringy, u8array, 0, u8array.length);
-      if (dontAddNull) u8array.length = numBytesWritten;
-      return u8array;
-    };
+  function intArrayFromString(stringy, dontAddNull, length) {
+    var len = length > 0 ? length : lengthBytesUTF8(stringy)+1;
+    var u8array = new Array(len);
+    var numBytesWritten = stringToUTF8Array(stringy, u8array, 0, u8array.length);
+    if (dontAddNull) u8array.length = numBytesWritten;
+    return u8array;
+  }
   var FS_stdin_getChar = () => {
       if (!FS_stdin_getChar_buffer.length) {
         var result = null;
@@ -1441,7 +1476,7 @@ var ASM_CONSTS = {
           }
         },
   fsync(tty) {
-          if (tty.output?.length > 0) {
+          if (tty.output && tty.output.length > 0) {
             out(UTF8ArrayToString(tty.output));
             tty.output = [];
           }
@@ -1478,7 +1513,7 @@ var ASM_CONSTS = {
           }
         },
   fsync(tty) {
-          if (tty.output?.length > 0) {
+          if (tty.output && tty.output.length > 0) {
             err(UTF8ArrayToString(tty.output));
             tty.output = [];
           }
@@ -2785,13 +2820,6 @@ var ASM_CONSTS = {
         stream.stream_ops?.dup?.(stream);
         return stream;
       },
-  doSetAttr(stream, node, attr) {
-        var setattr = stream?.stream_ops.setattr;
-        var arg = setattr ? stream : node;
-        setattr ??= node.node_ops.setattr;
-        FS.checkOpExists(setattr, 63)
-        setattr(arg, attr);
-      },
   chrdev_stream_ops:{
   open(stream) {
           var device = FS.getDevice(stream.node.rdev);
@@ -3207,24 +3235,8 @@ var ASM_CONSTS = {
         var getattr = FS.checkOpExists(node.node_ops.getattr, 63);
         return getattr(node);
       },
-  fstat(fd) {
-        var stream = FS.getStreamChecked(fd);
-        var node = stream.node;
-        var getattr = stream.stream_ops.getattr;
-        var arg = getattr ? stream : node;
-        getattr ??= node.node_ops.getattr;
-        FS.checkOpExists(getattr, 63)
-        return getattr(arg);
-      },
   lstat(path) {
         return FS.stat(path, true);
-      },
-  doChmod(stream, node, mode, dontFollow) {
-        FS.doSetAttr(stream, node, {
-          mode: (mode & 4095) | (node.mode & ~4095),
-          ctime: Date.now(),
-          dontFollow
-        });
       },
   chmod(path, mode, dontFollow) {
         var node;
@@ -3234,21 +3246,19 @@ var ASM_CONSTS = {
         } else {
           node = path;
         }
-        FS.doChmod(null, node, mode, dontFollow);
+        var setattr = FS.checkOpExists(node.node_ops.setattr, 63);
+        setattr(node, {
+          mode: (mode & 4095) | (node.mode & ~4095),
+          ctime: Date.now(),
+          dontFollow
+        });
       },
   lchmod(path, mode) {
         FS.chmod(path, mode, true);
       },
   fchmod(fd, mode) {
         var stream = FS.getStreamChecked(fd);
-        FS.doChmod(stream, stream.node, mode, false);
-      },
-  doChown(stream, node, dontFollow) {
-        FS.doSetAttr(stream, node, {
-          timestamp: Date.now(),
-          dontFollow
-          // we ignore the uid / gid for now
-        });
+        FS.chmod(stream.node, mode);
       },
   chown(path, uid, gid, dontFollow) {
         var node;
@@ -3258,30 +3268,19 @@ var ASM_CONSTS = {
         } else {
           node = path;
         }
-        FS.doChown(null, node, dontFollow);
+        var setattr = FS.checkOpExists(node.node_ops.setattr, 63);
+        setattr(node, {
+          timestamp: Date.now(),
+          dontFollow
+          // we ignore the uid / gid for now
+        });
       },
   lchown(path, uid, gid) {
         FS.chown(path, uid, gid, true);
       },
   fchown(fd, uid, gid) {
         var stream = FS.getStreamChecked(fd);
-        FS.doChown(stream, stream.node, false);
-      },
-  doTruncate(stream, node, len) {
-        if (FS.isDir(node.mode)) {
-          throw new FS.ErrnoError(31);
-        }
-        if (!FS.isFile(node.mode)) {
-          throw new FS.ErrnoError(28);
-        }
-        var errCode = FS.nodePermissions(node, 'w');
-        if (errCode) {
-          throw new FS.ErrnoError(errCode);
-        }
-        FS.doSetAttr(stream, node, {
-          size: len,
-          timestamp: Date.now()
-        });
+        FS.chown(stream.node, uid, gid);
       },
   truncate(path, len) {
         if (len < 0) {
@@ -3294,14 +3293,28 @@ var ASM_CONSTS = {
         } else {
           node = path;
         }
-        FS.doTruncate(null, node, len);
+        if (FS.isDir(node.mode)) {
+          throw new FS.ErrnoError(31);
+        }
+        if (!FS.isFile(node.mode)) {
+          throw new FS.ErrnoError(28);
+        }
+        var errCode = FS.nodePermissions(node, 'w');
+        if (errCode) {
+          throw new FS.ErrnoError(errCode);
+        }
+        var setattr = FS.checkOpExists(node.node_ops.setattr, 63);
+        setattr(node, {
+          size: len,
+          timestamp: Date.now()
+        });
       },
   ftruncate(fd, len) {
         var stream = FS.getStreamChecked(fd);
-        if (len < 0 || (stream.flags & 2097155) === 0) {
+        if ((stream.flags & 2097155) === 0) {
           throw new FS.ErrnoError(28);
         }
-        FS.doTruncate(stream, stream.node, len);
+        FS.truncate(stream.node, len);
       },
   utime(path, atime, mtime) {
         var lookup = FS.lookupPath(path, { follow: true });
@@ -4429,8 +4442,6 @@ var ASM_CONSTS = {
       abortOnCannotGrowMemory(requestedSize);
     };
 
-  var onExits = [];
-  var addOnExit = (cb) => onExits.unshift(cb);
   var JSEvents = {
   memcpy(target, src, size) {
         HEAP8.set(HEAP8.subarray(src, src + size), target);
@@ -4929,7 +4940,7 @@ var ASM_CONSTS = {
       }
   
       if (!noSetTiming) {
-        if (fps > 0) {
+        if (fps && fps > 0) {
           _emscripten_set_main_loop_timing(0, 1000.0 / fps);
         } else {
           // Do rAF by rendering each frame (no decimating)
@@ -5224,9 +5235,9 @@ var ASM_CONSTS = {
   // Set module methods based on EXPORTED_RUNTIME_METHODS
   ;
 
-      Module['requestAnimationFrame'] = MainLoop.requestAnimationFrame;
-      Module['pauseMainLoop'] = MainLoop.pause;
-      Module['resumeMainLoop'] = MainLoop.resume;
+      Module["requestAnimationFrame"] = MainLoop.requestAnimationFrame;
+      Module["pauseMainLoop"] = MainLoop.pause;
+      Module["resumeMainLoop"] = MainLoop.resume;
       MainLoop.init();;
 function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
@@ -5325,9 +5336,6 @@ var missingLibrarySymbols = [
   'asmjsMangle',
   'HandleAllocator',
   'getNativeTypeSize',
-  'addOnInit',
-  'addOnPostCtor',
-  'addOnPreMain',
   'STACK_SIZE',
   'STACK_ALIGN',
   'POINTER_SIZE',
@@ -5454,6 +5462,11 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
 
 var unexportedSymbols = [
   'run',
+  'addOnPreRun',
+  'addOnInit',
+  'addOnPreMain',
+  'addOnExit',
+  'addOnPostRun',
   'addRunDependency',
   'removeRunDependency',
   'out',
@@ -5497,9 +5510,6 @@ var unexportedSymbols = [
   'mmapAlloc',
   'wasmTable',
   'noExitRuntime',
-  'addOnPreRun',
-  'addOnExit',
-  'addOnPostRun',
   'getCFunc',
   'ccall',
   'freeTableIndexes',
@@ -5590,7 +5600,7 @@ var calledRun;
 
 function callMain() {
   assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
-  assert(typeof onPreRuns === 'undefined' || onPreRuns.length == 0, 'cannot call main when preRun functions remain to be called');
+  assert(__ATPRERUN__.length == 0, 'cannot call main when preRun functions remain to be called');
 
   var entryFunction = _main;
 

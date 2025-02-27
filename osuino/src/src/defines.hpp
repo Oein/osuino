@@ -18,15 +18,20 @@
 #undef _PRINT_EARLY_LATE_MS_
 // 파일 시스템 로그를 출력합니다.
 #undef _PRINTF_FS_INFO_
+// 파싱 정보를 출력합니다.
+#undef _PRINT_PARSE_INFO_
 // 죽지 않습니다.
 #undef _NO_DIE_
 // 모든 동작 사이 애니메이션을 끕니다, 아두이노에서는 필수 입니다.
 #define _DO_NOT_ANIMATE_
+// API를 모킹합니다.
+#define _API_MOCK_
 
-
+#ifdef _IS_ARDUINO_
 #undef _RENDER_EVERY_FRAME_
 #undef _DRAW_NOTE_INDEX_
 #define _DO_NOT_ANIMATE_
+#endif
 
 // MARK: - Constants
 
