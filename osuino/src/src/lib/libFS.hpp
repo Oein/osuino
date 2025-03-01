@@ -3,6 +3,16 @@
 #include <iostream>
 #endif
 
+class ConfigData
+{
+public:
+    IStringType data;
+    bool hasData = false;
+    ConfigData() {}
+    ConfigData(IStringType data) : data(data), hasData(true) {}
+    ConfigData(bool hasData) : hasData(hasData) {}
+};
+
 #ifdef _IS_ARDUINO_
 class FS
 {
@@ -73,6 +83,13 @@ public:
         if(filename == "chunk-2842217-3-4.chunk") return "_A40@_0C1@_bG1@_2U1@_eh1@_4m1@_sx1_641_HA2@_iO2@_JS2@_wV2@_+c2@_Zr2@_/u2@_N22@_052@_a92@_PI3@_cP3@_3d3@_Fl3@_so3@_Gu3@_gz3@_H33@_7B4@_iF4@_jO4@_Kb4@_Yi4_mp4_Mt4@_n74@_PI5@_pN5@_QR5@_eY5@_rf5@_5m5@_fq5@_Gu5@_U15@_h85@_vD6@_8K6@_KS6@_XZ6@_+c6@_lg6@_yn6@_Av6@_O26@_O/6@_1C7@_PI7@_ET7@_Ra7@_so7@_6v7@_H37@_iF8@_+T8@_Zi8@_Av8@_P/8@_pE9@_QI9@_Fc9@_Gl9@_ux9@_749@_i89@_8B+@_kO+@_xV+@_mg+@_Mk+@_zn+@_ar+@_Bv+@_O2+@";
     return "";
     }
+
+    void writeConfig(IStringType key, IStringType value) {
+    }
+
+    IStringType readConfig(IStringType key) {
+        return "";
+    }
 };
 #else
 class FS
@@ -83,7 +100,6 @@ public:
 
     IVector<IStringType> listMetas() {
         IVector<IStringType> result;
-        // result.push_back("map-2842217.meta");
         FILE *file = fopen("/metalist.bin", "r");
         if (file == NULL) {
 #ifdef _PRINTF_FS_INFO_
@@ -206,5 +222,39 @@ public:
         writeMetaFile("map-2461679.meta", "__HOgE__v/YJ_Etest_Etest_Etest___B_________D______");
         writeChunkFile("chunk-2461679-1-0.chunk", "__+Q@__YU@__xX@");
     }
+
+    void writeConfig(IStringType key, IStringType value) {
+        // write to fs
+        std::ofstream t("/config-" + key + ".kv");
+        t << value;
+        t.close();
+    }
+
+    ConfigData readConfig(IStringType key) {
+        // read from fs
+        // check if file exists
+        std::ifstream t("/config-" + key + ".kv");
+        if (!t.good()) {
+            return ConfigData();
+        }
+        std::string str((std::istreambuf_iterator<char>(t)),
+                        std::istreambuf_iterator<char>());
+        t.close();
+        return ConfigData(str);
+    }
 };
 #endif
+
+class ConfigInstance {
+public:
+    FS *fs;
+    ConfigInstance(FS *fs) {
+        this->fs = fs;
+    }
+
+    int getNoteSpeed() {
+        ConfigData data = fs->readConfig("noteSpeed");
+        if(data.hasData) return string2int(data.data);
+        return 400;
+    }
+};

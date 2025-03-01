@@ -15,6 +15,7 @@ Scene currentScene = Scene::Intro;
 
 #include "./lib/libFS.hpp"
 FS fsapi;
+ConfigInstance config(&fsapi);
 
 #include "./lib/libAnimate.hpp"
 #include "./lib/libKey.hpp"
