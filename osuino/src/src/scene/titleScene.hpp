@@ -84,8 +84,8 @@ public:
         api->drawButtonName(baseX + playButtonWidthHandler.current() + downloadButtonWidthHandler.current() + optionsButtonWidthHandler.current() / 2, textY, "OPT", darkenText);
 
         // OSU LOGO ANIMATION
-        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, logoMovSz, COLOR_WHITE);
-        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, logoInnerSz, COLOR_OSU);
+        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, (int)logoMovSz, COLOR_WHITE);
+        api->drawCircle(logoMovX, CANVAS_HEIGHT / 2, (int)logoInnerSz, COLOR_OSU);
         if (logoMovSz >= (CANVAS_WIDTH / 8 + 80) / 2)
             api->drawOsuLogoText(logoMovX, CANVAS_HEIGHT / 2, "OSU!", COLOR_WHITE);
         else

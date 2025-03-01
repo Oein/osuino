@@ -3,7 +3,7 @@
 #define CANVAS_HEIGHT 480
 
 // 랜더링시 노트를 매 프레임마다 그립니다. (아두이노에서는 절대 금지)
-#define _RENDER_EVERY_FRAME_
+#undef _RENDER_EVERY_FRAME_
 // 노트가 미스된경우 콘솔에 출력
 #undef _PRINT_NOTE_MISSED_
 // 노트 인덱스를 노트위에 작성합니다. _RENDER_EVERY_FRAME_가 활성화 되어야 합니다.
@@ -28,11 +28,16 @@
 #define _API_MOCK_
 // 퍼펙트 플레이를 달성했을떄의 점수
 #define FULLSCORE 1000000.0
+// 시리얼로 드로잉 API를 호출합니다.
+#define _SERIAL_DRAW_
 
 #ifdef _IS_ARDUINO_
 #undef _RENDER_EVERY_FRAME_
 #undef _DRAW_NOTE_INDEX_
 #define _DO_NOT_ANIMATE_
+#endif
+#ifndef _IS_ARDUINO_
+#undef _SERIAL_DRAW_
 #endif
 
 // MARK: - Constants

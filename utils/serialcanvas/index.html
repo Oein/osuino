@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Serial Key</title>
+  </head>
+  <body>
+    <canvas id="canvas" width="320" height="480"></canvas>
+    <button id="connect">Connect</button>
+    <div id="keys" class="k">s</div>
+    <div id="keyd" class="k">d</div>
+    <div id="keyl" class="k">l</div>
+    <div id="keyk" class="k">;</div>
+    <code>
+      <pre id="log"></pre>
+    </code>
+    <style>
+      .k {
+        width: 100px;
+        height: 100px;
+        display: inline-block;
+        font-size: 2em;
+        text-align: center;
+        line-height: 100px;
+        border: 1px solid black;
+        margin: 10px;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+    <script>
+      const printDrawLog = false;
+      const canvas = document.getElementById("canvas");
+      canvas.style.backgroundColor = "black";
+      const ctx = canvas.getContext("2d");
+      const connectButton = document.getElementById("connect");
+      let port;
+      let connected = false;
+      let keepReading = true;
+
+      const STATE = {
+        IDLE: 0,
+        READCMD: 1,
+        RECT1: 2,
+        CIR1: 3,
+        TRI1: 4,
+        TRIOUT1: 5,
+        INTROT: 6,
+        LOGOTEXT: 7,
+        LOGOTL: 8,
+        LOGOSM: 9,
+        BTNNT: 10,
+        TEXT: 11,
+        TTOPLEFT: 12,
+        TEXTTLSM: 13,
+        COMBOT: 14,
+        COMBONUM: 15,
+      };
+      let state = 0;
+
+      let cmd = "";
+      let xys = [];
+      let buffer = "";
+      let readLeft = 0;
+
+      function base64ToNumber(base64) {
+        const base =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let num = 0;
+        let power = 1;
+
+        for (let i = base64.length - 1; i >= 0; i--) {
+          if (base64[i] === "_") {
+            break;
+          }
+          let index = base.indexOf(base64[i]);
+          if (index !== -1) {
+            num += index * power;
+            power *= 64;
+          } else {
+            console.error(
+              `Invalid base64 character: ${base64[i]}, parsing ${base64}`
+            );
+            return -1; // Return an error code for invalid input
+          }
+        }
+
+
+        // console.log("base64", base64, "num", num);
+
+        return num;
+      }
+
+      let handleBuffer = [];
+
+      function handleString(str) {
+        const arr = str.split("");
+        handleBuffer = handleBuffer.concat(arr);
+      }
+
+      async function readUntilClosed() {
+        while (port.readable && keepReading) {
+          reader = port.readable.getReader();
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) {
+                // reader.cancel()이 호출됐다.
+                break;
+              }
+              // value는 Uint8Array이다.
+              const str = new TextDecoder().decode(value);
+              handleString(str);
+              console.log(str);
+            }
+          } catch (error) {
+            // Handle error...
+          } finally {
+            // 시리얼 포트가 나중에 닫힐 수 있도록 해준다.
+            reader.releaseLock();
+          }
+        }
+
+        await port.close();
+      }
+      connectButton.addEventListener("click", async () => {
+        try {
+          port = await navigator.serial.requestPort();
+          // Continue connecting to the device attached to |port|.
+
+          await port.open({ baudRate: 115200 });
+          connected = true;
+          readUntilClosed();
+        } catch (e) {
+          // The prompt has been dismissed without selecting a device.
+          console.error(e);
+        }
+      });
+      const kmap = {
+        83: "s",
+        68: "d",
+        76: "l",
+        186: "k",
+      };
+      document.addEventListener("keydown", async (e) => {
+        if (connected) {
+          if (e.keyCode in kmap) {
+            const writer = port.writable.getWriter();
+            await writer.write(new TextEncoder().encode(kmap[e.keyCode]));
+            writer.releaseLock();
+            document.getElementById(
+              "key" + kmap[e.keyCode]
+            ).style.backgroundColor = "black";
+            document.getElementById("key" + kmap[e.keyCode]).style.color =
+              "white";
+          }
+        }
+      });
+      document.addEventListener("keyup", async (e) => {
+        if (connected) {
+          if (e.keyCode in kmap) {
+            const writer = port.writable.getWriter();
+            await writer.write(
+              new TextEncoder().encode(kmap[e.keyCode].toUpperCase())
+            );
+            writer.releaseLock();
+            document.getElementById(
+              "key" + kmap[e.keyCode]
+            ).style.backgroundColor = "white";
+            document.getElementById("key" + kmap[e.keyCode]).style.color =
+              "black";
+          }
+        }
+      });
+
+      function readBytes(n) {
+        // console.log("Waiting for", n, "bytes");
+        return new Promise(async (resolve) => {
+          while (handleBuffer.length < n) {
+            await new Promise((r) => setTimeout(r, 1));
+          }
+          const ret = handleBuffer.slice(0, n);
+          handleBuffer = handleBuffer.slice(n);
+          resolve(ret);
+        });
+      }
+      let logs = [];
+      let currentLog = "";
+      async function runner() {
+        while (true) {
+          const cmdStarter = await readBytes(1);
+          if (cmdStarter[0] != "@") {
+            if(cmdStarter[0] == "\n") {
+              logs.push(currentLog);
+              currentLog = "";
+            } else {
+              currentLog += cmdStarter[0];
+            }
+            document.getElementById("log").innerText = [
+              ...logs,
+              currentLog,
+            ].reverse().join("\n");
+            continue;
+          }
+          const cmd = await readBytes(1);
+          if (cmd == "R") {
+            const x = await readBytes(2);
+            const y = await readBytes(2);
+            const w = await readBytes(2);
+            const h = await readBytes(2);
+            const r = await readBytes(2);
+            const g = await readBytes(2);
+            const b = await readBytes(2);
+            // translate to number
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const wnum = base64ToNumber(w.join(""));
+            const hnum = base64ToNumber(h.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+            if(printDrawLog) if(printDrawLog) console.log(`drawRect(x: ${xnum}, y: ${ynum}, w: ${wnum}, h: ${hnum}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.fillRect(xnum, ynum, wnum, hnum);
+            continue;
+          }
+          if (cmd == "C") {
+            const x = await readBytes(2);
+            const y = await readBytes(2);
+            const rad = await readBytes(2);
+            const r = await readBytes(2);
+            const g = await readBytes(2);
+            const b = await readBytes(2);
+            // translate to number
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+            const radnum = base64ToNumber(rad.join(""));
+            if(printDrawLog) console.log(`drawCircle(x: ${xnum}, y: ${ynum}, rad: ${radnum}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.beginPath();
+            ctx.arc(xnum, ynum, radnum, 0, 2 * Math.PI);
+            ctx.fill();
+            continue;
+          }
+          if (cmd == "T") {
+            const x1 = await readBytes(2);
+            const y1 = await readBytes(2);
+            const x2 = await readBytes(2);
+            const y2 = await readBytes(2);
+            const x3 = await readBytes(2);
+            const y3 = await readBytes(2);
+            const r = await readBytes(2);
+            const g = await readBytes(2);
+            const b = await readBytes(2);
+            // translate to number
+            const x1num = base64ToNumber(x1.join(""));
+            const y1num = base64ToNumber(y1.join(""));
+            const x2num = base64ToNumber(x2.join(""));
+            const y2num = base64ToNumber(y2.join(""));
+            const x3num = base64ToNumber(x3.join(""));
+            const y3num = base64ToNumber(y3.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+            if(printDrawLog) console.log(`drawTriangle(x1: ${x1num}, y1: ${y1num}, x2: ${x2num}, y2: ${y2num}, x3: ${x3num}, y3: ${y3num}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.beginPath();
+            ctx.moveTo(x1num, y1num);
+            ctx.lineTo(x2num, y2num);
+            ctx.lineTo(x3num, y3num);
+            ctx.fill();
+            continue;
+          }
+          if (cmd == "t") {
+            // triangle outline
+            const x1 = await readBytes(2);
+            const y1 = await readBytes(2);
+            const x2 = await readBytes(2);
+            const y2 = await readBytes(2);
+            const x3 = await readBytes(2);
+            const y3 = await readBytes(2);
+            const r = await readBytes(2);
+            const g = await readBytes(2);
+            const b = await readBytes(2);
+            // translate to number
+
+            const x1num = base64ToNumber(x1.join(""));
+            const y1num = base64ToNumber(y1.join(""));
+            const x2num = base64ToNumber(x2.join(""));
+            const y2num = base64ToNumber(y2.join(""));
+            const x3num = base64ToNumber(x3.join(""));
+            const y3num = base64ToNumber(y3.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawTriangleOutline(x1: ${x1num}, y1: ${y1num}, x2: ${x2num}, y2: ${y2num}, x3: ${x3num}, y3: ${y3num}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+
+            ctx.strokeStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.beginPath();
+            ctx.moveTo(x1num, y1num);
+            ctx.lineTo(x2num, y2num);
+            ctx.lineTo(x3num, y3num);
+            ctx.lineTo(x1num, y1num);
+            ctx.stroke();
+            continue;
+          }
+
+          if (cmd == "c") {
+            // fill with black
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, 320, 480);
+            if(printDrawLog) console.log("clear");
+            continue;
+          }
+
+          if (cmd == "q" || cmd == "Q") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+
+            ctx.font = '26pt Arial';
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+            ctx.fillText(
+              text.join(""),
+              xnum - textWidth / 2,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+
+          if(cmd == "x") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            /*
+            Module.ctx.font = '26pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
+            */
+           ctx.font = '26pt Arial';
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+            ctx.fillText(
+              text.join(""),
+              xnum,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+
+          if(cmd == "w" || cmd == "W" || cmd == "e") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            /*
+            Module.ctx.font = '26pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
+            */
+           ctx.font = '13pt Arial';
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+            ctx.fillText(
+              text.join(""),
+              xnum - textWidth / 2,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+
+          if(cmd == "E") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            /*
+            Module.ctx.font = '26pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
+            */
+           ctx.font = '13pt Arial';
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+            ctx.fillText(
+              text.join(""),
+              xnum,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+
+          if(cmd == "r") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            /*
+            Module.ctx.font = '26pt Arial';
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
+            */
+           ctx.font = '10pt Arial';
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+            ctx.fillText(
+              text.join(""),
+              xnum,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+
+          if(cmd == "v") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            /*
+            Module.ctx.font = '26pt Arial';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textWidth = measure.width;
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            // draw background with black
+            Module.ctx.fillStyle = 'rgb(0, 0, 0)';
+            Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
+
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2);
+            */
+           ctx.font = '13pt Arial';
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+              ctx.fillStyle = "black";
+              ctx.fillRect(xnum - textWidth / 2 - 5, ynum - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
+              ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.fillText(
+              text.join(""),
+              xnum - textWidth / 2,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+
+          if(cmd == "a") {
+            let x = await readBytes(2);
+            let y = await readBytes(2);
+            let tlen = await readBytes(2);
+
+            const tlennum = base64ToNumber(tlen.join(""));
+            let text = await readBytes(tlennum);
+
+            let r = await readBytes(2);
+            let g = await readBytes(2);
+            let b = await readBytes(2);
+
+            const xnum = base64ToNumber(x.join(""));
+            const ynum = base64ToNumber(y.join(""));
+            const rnum = base64ToNumber(r.join(""));
+            const gnum = base64ToNumber(g.join(""));
+            const bnum = base64ToNumber(b.join(""));
+
+            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            /*
+            Module.ctx.font = '26pt Arial';
+            var measure = Module.ctx.measureText(UTF8ToString($0));
+            var textWidth = measure.width;
+            var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
+            // draw background with black
+            Module.ctx.fillStyle = 'rgb(0, 0, 0)';
+            Module.ctx.fillRect($1 - textWidth / 2 - 5, $2 - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
+
+            Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
+            Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2);
+            */
+           ctx.font = '13pt Arial';
+            var measure = ctx.measureText(text.join(""));
+            var textWidth = measure.width;
+            var textHeight =
+              measure.actualBoundingBoxAscent +
+              measure.actualBoundingBoxDescent;
+              ctx.fillStyle = "black";
+              ctx.fillRect(xnum - textWidth / 2 - 5, ynum - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
+              ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.fillText(
+              text.join(""),
+              xnum - textWidth / 2,
+              ynum + textHeight / 2
+            );
+            continue;
+          }
+        }
+      }
+
+      setTimeout(runner, 0);
+    </script>
+  </body>
+</html>

@@ -22,7 +22,7 @@ public:
                 num += index * power;
                 power *= 64;
             } else {
-                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                printf("Invalid base64 character(file int): %c, parsing %s\n", base64[i], base64.c_str());
                 return -1; // Return an error code for invalid input
             }
         }
@@ -50,7 +50,7 @@ public:
                 num += index * power;
                 power *= 64;
             } else {
-                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                printf("Invalid base64 character(file long): %c, parsing %s\n", base64[i], base64.c_str());
                 return -1; // Return an error code for invalid input
             }
         }

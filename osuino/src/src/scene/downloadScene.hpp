@@ -184,14 +184,14 @@ public:
                     // then skip this map
 
                     IStringType version = response.data[i].maps[j].version;
-                    if(version.size() >= 4) {
+                    if(version.length() >= 4) {
                         if(version[0] == '[' && version[2] == 'K' && version[3] == ']') {
                             if(version[1] != '4') {
                                 continue;
                             }
                         }
                     }
-                    if(version.size() >= 5) {
+                    if(version.length() >= 5) {
                         // match [10K]
                         if(version[0] == '[' && version[3] == 'K' && version[4] == ']') {
                             if(version[1] == '1' && version[2] == '0') {

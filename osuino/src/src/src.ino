@@ -7,11 +7,14 @@
 #include "./platform/platform-arduino.hpp"
 
 #include "./main.hpp"
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 void setup()
 {
     tft.begin();
     Serial.begin(115200);
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 }
 void loop()
 {

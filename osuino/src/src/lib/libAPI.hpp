@@ -81,7 +81,7 @@ private:
             }
             else
             {
-                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                printf("Invalid base64 character(mock int): %c, parsing %s\n", base64[i], base64.c_str());
                 return -1; // Return an error code for invalid input
             }
         }
@@ -123,7 +123,7 @@ public:
             }
             else
             {
-                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                printf("Invalid base64 character(mock long): %c, parsing %s\n", base64[i], base64.c_str());
                 return -1; // Return an error code for invalid input
             }
         }
@@ -193,7 +193,7 @@ private:
             }
             else
             {
-                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                printf("Invalid base64 character(api int): %c, parsing %s\n", base64[i], base64.c_str());
                 return -1; // Return an error code for invalid input
             }
         }
@@ -229,7 +229,7 @@ private:
             }
             else
             {
-                printf("Invalid base64 character: %c, parsing %s\n", base64[i], base64.c_str());
+                printf("Invalid base64 character(api long): %c, parsing %s\n", base64[i], base64.c_str());
                 return -1; // Return an error code for invalid input
             }
         }

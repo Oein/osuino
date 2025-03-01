@@ -78,8 +78,8 @@ public:
         api->drawRect(0, 0, CANVAS_WIDTH, 40, rgb(10, 50, 50));
         api->drawTextTopLeft(10, 20, "Result", COLOR_WHITE);
         // draw rank string in the triangle(large)
-        api->drawCircle(CANVAS_WIDTH / 5, 110, CANVAS_WIDTH / 7, COLOR_WHITE);
-        api->drawCircle(CANVAS_WIDTH / 5, 110, CANVAS_WIDTH / 7 * 0.9, COLOR_OSU);
+        api->drawCircle(CANVAS_WIDTH / 5, 110, (int)(CANVAS_WIDTH / 7), COLOR_WHITE);
+        api->drawCircle(CANVAS_WIDTH / 5, 110, (int)(CANVAS_WIDTH / 7 * 0.9), COLOR_OSU);
         api->drawOsuLogoText(CANVAS_WIDTH / 5, 110, getRankString(gameResult.getScore()), COLOR_WHITE);
 
         // draw score
