@@ -291,3 +291,82 @@ public:
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2); }, text.c_str(), x, y, color);
     }
 };
+
+typedef enum {
+    WIFI_AUTH_OPEN = 0,         /**< authenticate mode : open */
+    WIFI_AUTH_WEP,              /**< authenticate mode : WEP */
+    WIFI_AUTH_WPA_PSK,          /**< authenticate mode : WPA_PSK */
+    WIFI_AUTH_WPA2_PSK,         /**< authenticate mode : WPA2_PSK */
+    WIFI_AUTH_WPA_WPA2_PSK,     /**< authenticate mode : WPA_WPA2_PSK */
+    WIFI_AUTH_ENTERPRISE,       /**< authenticate mode : WiFi EAP security */
+    WIFI_AUTH_WPA2_ENTERPRISE = WIFI_AUTH_ENTERPRISE,  /**< authenticate mode : WiFi EAP security */
+    WIFI_AUTH_WPA3_PSK,         /**< authenticate mode : WPA3_PSK */
+    WIFI_AUTH_WPA2_WPA3_PSK,    /**< authenticate mode : WPA2_WPA3_PSK */
+    WIFI_AUTH_WAPI_PSK,         /**< authenticate mode : WAPI_PSK */
+    WIFI_AUTH_WPA3_ENT_192,     /**< authenticate mode : WPA3_ENT_SUITE_B_192_BIT */
+    WIFI_AUTH_MAX
+} wifi_auth_mode_t;
+
+typedef enum {
+	WL_NO_SHIELD = 255,
+        WL_NO_MODULE = WL_NO_SHIELD,
+        WL_IDLE_STATUS = 0,
+        WL_NO_SSID_AVAIL,
+        WL_SCAN_COMPLETED,
+        WL_CONNECTED,
+        WL_CONNECT_FAILED,
+        WL_CONNECTION_LOST,
+        WL_DISCONNECTED,
+        WL_AP_LISTENING,
+        WL_AP_CONNECTED,
+        WL_AP_FAILED
+} wl_status_t;
+
+class __ARDUINO_WIFI {
+public:
+    std::vector<IStringType> ssids;
+    std::vector<wifi_auth_mode_t> auths;
+    std::vector<int> rssi;
+
+    __ARDUINO_WIFI() {
+        ssids.push_back("SSID1");
+        ssids.push_back("SSID2");
+        ssids.push_back("SSID3");
+        auths.push_back(WIFI_AUTH_OPEN);
+        auths.push_back(WIFI_AUTH_WPA2_PSK);
+        auths.push_back(WIFI_AUTH_WPA2_PSK);
+        rssi.push_back(-50);
+        rssi.push_back(-60);
+        rssi.push_back(-70);
+    }
+
+    int scanNetworks() {
+        return 3;
+    }
+
+    wifi_auth_mode_t encryptionType(int index) {
+        return auths[index];
+    }
+
+    IStringType SSID(int index) {
+        return ssids[index];
+    }
+
+    int RSSI(int index) {
+        return rssi[index];
+    }
+
+    void scanDelete() {
+
+    }
+
+    void begin(IStringType ssid, IStringType password) {
+
+    }
+
+    wl_status_t status() {
+        return WL_CONNECTED;
+    }
+};
+
+__ARDUINO_WIFI WiFi;
