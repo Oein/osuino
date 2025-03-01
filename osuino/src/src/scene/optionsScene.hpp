@@ -43,7 +43,7 @@ public:
         keyHelper->render();
     }
 
-    int constrain(int value, int min, int max)
+    int constrain_(int value, int min, int max)
     {
         if(value < min) return min;
         if(value > max) return max;
@@ -90,7 +90,7 @@ public:
             
             // Draw signal strength indicator (simple bars)
             int rssi = WiFi.RSSI(networkIdx);
-            int strength = mapper(constrain(rssi, -100, -40), -100, -40, 0, 4);
+            int strength = mapper(constrain_(rssi, -100, -40), -100, -40, 0, 4);
             
             for(int j = 0; j < 4; j++) {
                 uint16_t barColor = j < strength ? rgb(0, 150, 0) : rgb(100, 100, 100);
@@ -130,27 +130,11 @@ public:
         // WL_CONNECTION_LOST
         // WL_DISCONNECTED
         WiFi.begin(WiFi.SSID(selectedNetwork).c_str(), password.c_str());
-        while(WiFi.status() != WL_CONNECTED) {
-            if(WiFi.status() == WL_NO_SSID_AVAIL) {
-                renderBase();
-                api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "No network found", COLOR_WHITE);
-                return;
-            }
-            if(WiFi.status() == WL_CONNECT_FAILED) {
-                renderBase();
-                api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Connection failed", COLOR_WHITE);
-                return;
-            }
-            if(WiFi.status() == WL_CONNECTION_LOST) {
-                renderBase();
-                api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Connection lost", COLOR_WHITE);
-                return;
-            }
-            if(WiFi.status() == WL_DISCONNECTED) {
-                renderBase();
-                api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Disconnected", COLOR_WHITE);
-                return;
-            }
+    
+        uint8_t status = WiFi.waitForConnectResult();
+        if(status != WL_CONNECTED) {
+            api->drawOsuLogoText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "Connection failed", COLOR_WHITE);
+            return;
         }
 
         renderBase();

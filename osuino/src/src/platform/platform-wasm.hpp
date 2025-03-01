@@ -367,6 +367,10 @@ public:
     wl_status_t status() {
         return WL_CONNECTED;
     }
+
+    wl_status_t waitForConnectResult() {
+        return WL_CONNECTED;
+    }
 };
 
 __ARDUINO_WIFI WiFi;

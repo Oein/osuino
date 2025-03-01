@@ -383,20 +383,3 @@ public:
         return IOSUMapResponse(true, result);
     }
 };
-
-#ifndef _API_MOCK_
-void initlizeWifi()
-{
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.print(ssid);
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.print(".");
-        // wait 1 second for re-trying
-        delay(1000);
-    }
-    client.setCACert(test_root_ca);
-}
-#endif

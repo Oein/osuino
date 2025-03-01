@@ -1,3 +1,5 @@
+#include "WiFi.h"
+
 #define IColorType int16_t
 #define IStringType String
 #define subString(sub, start, length) sub.substring(start, start + length)
