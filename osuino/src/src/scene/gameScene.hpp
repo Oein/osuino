@@ -544,9 +544,9 @@ public:
 
     TwoCursor lastLoaded = TwoCursor(1234567890, 0);
 
-    void syncnolus_ingameLoading()
+    void syncnolus_ingameLoading(bool forceRender)
     {
-        if (lastLoaded.cursor == requestedPlaymap.cursor && lastLoaded.subcursor == requestedPlaymap.subcursor)
+        if ((lastLoaded.cursor == requestedPlaymap.cursor && lastLoaded.subcursor == requestedPlaymap.subcursor) && !forceRender)
             return;
 
         loadingScene->setProgress(0);
@@ -590,7 +590,7 @@ public:
 
     void update(bool forceRender)
     {
-        syncnolus_ingameLoading();
+        syncnolus_ingameLoading(forceRender);
         if (forceRender)
             initlize();
 

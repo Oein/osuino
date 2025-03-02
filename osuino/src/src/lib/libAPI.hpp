@@ -3,10 +3,6 @@
 #ifndef _API_MOCK_
 #include <WiFiClientSecure.h>
 #include <UrlEncode.h>
-
-const char *ssid = ENV_WIFI_SSID;     // your network SSID (name of wifi network)
-const char *password = ENV_WIFI_PASS; // your network password
-
 const char *server = ENV_SERVER_HOST; // Server URL
 
 const char *test_root_ca =
@@ -354,24 +350,24 @@ public:
         for (int i = 0; i < length; i++)
         {
             OSUMapResponseItem item;
-            // printf("Getting map %d out of %zu\n", i, length);
+            printf("Getting map %d out of %zu\n", i, length);
             parser.getStringOfLength(2); // consume length
             item.title = parser.parseString(2);
-            // printf("  Title: %s\n", item.title.c_str());
+            printf("  Title: %s\n", item.title.c_str());
             item.artist = parser.parseString(2);
-            // printf("  Artist: %s\n", item.artist.c_str());
+            printf("  Artist: %s\n", item.artist.c_str());
             unsigned long mapLength = parser.getLargeNumber(2);
             for (int j = 0; j < mapLength; j++)
             {
-                // printf("  Getting beat %d out of %zu\n", j, mapLength);
+                printf("  Getting beat %d out of %zu\n", j, mapLength);
                 OSUBeatmapItem map;
                 parser.getStringOfLength(2); // consume length
                 map.id = string2int(parser.parseString(2));
-                // printf("    ID: %lu\n", map.id);
+                printf("    ID: %lu\n", map.id);
                 map.version = parser.parseString(2);
-                // printf("    Version: %s\n", map.version.c_str());
+                printf("    Version: %s\n", map.version.c_str());
                 map.star = string2float(parser.parseString(2));
-                // printf("    Star: %f\n", map.star);
+                printf("    Star: %f\n", map.star);
                 item.maps.push_back(map);
             }
             result.push_back(item);

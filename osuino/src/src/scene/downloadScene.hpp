@@ -22,6 +22,8 @@ public:
     bool hasPrev = false;
     std::vector<OSUBeatResponseItem> items;
 
+    bool hasError = false;
+
     bool searchMode = false;
 
     DownloadScene(CnavasAPI *api)
@@ -149,6 +151,16 @@ public:
         opacity.set(100);
     }
 
+    void renderError()
+    {
+        api->clear();
+        api->drawTextTopLeft(10, 10, "Error", COLOR_WHITE);
+        api->drawTextTopLeft(10, 30, "Failed to connect to osu! server", COLOR_WHITE);
+        keyHelper->setBtn(false, false, false, true);
+        keyHelper->setBtnText("", "", "", "Back");
+        keyHelper->render();
+    }
+
     void search()
     {
         loadingScene->setProgress(0);
@@ -207,9 +219,11 @@ public:
                 }
             }
             itemsCount = itemsCnt + items.size();
+            render();
+        } else {
+            renderError();
+            hasError = true;
         }
-
-        render();
     }
 
     int lastCursor = 0;
@@ -218,6 +232,7 @@ public:
     {
         if (forceRender)
         {
+            hasError = false;
             initlize();
             search();
         }
@@ -252,7 +267,7 @@ public:
             render();
         }
 
-        if (button0.get(buttonPressed(0)))
+        if (button0.get(buttonPressed(0)) && !hasError)
         {
             cursor--;
             if (cursor < 0)
@@ -262,7 +277,7 @@ public:
             opacity.set(60);
             opacity.setTarget(100);
         }
-        if (button1.get(buttonPressed(1)))
+        if (button1.get(buttonPressed(1)) && !hasError)
         {
             cursor++;
             if(cursor >= itemsCount)
@@ -273,7 +288,7 @@ public:
             opacity.setTarget(100);
         }
 
-        if(last2Button != buttonPressed(2))
+        if(last2Button != buttonPressed(2) && !hasError)
         {
             last2Button = buttonPressed(2);
             if(!last2Button)
