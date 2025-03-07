@@ -7,11 +7,15 @@
   </head>
   <body>
     <canvas id="canvas" width="320" height="480"></canvas>
-    <button id="connect">Connect</button>
+    <div>
+      <button id="connect">Connect</button>
+      <button id="dis" onclick="window.location.reload()">Disconnect</button>
+    </div>
     <div id="keys" class="k">s</div>
     <div id="keyd" class="k">d</div>
     <div id="keyl" class="k">l</div>
     <div id="keyk" class="k">;</div>
+    <div id="serialpersec"></div>
     <code>
       <pre id="log"></pre>
     </code>
@@ -39,6 +43,7 @@
       let port;
       let connected = false;
       let keepReading = true;
+      let se_per_sec = 0;
 
       const STATE = {
         IDLE: 0,
@@ -87,7 +92,6 @@
           }
         }
 
-
         // console.log("base64", base64, "num", num);
 
         return num;
@@ -99,6 +103,10 @@
         const arr = str.split("");
         handleBuffer = handleBuffer.concat(arr);
       }
+
+      setInterval(() => {
+        document.getElementById("serialpersec").innerText = se_per_sec + "B/s";
+      }, 10);
 
       async function readUntilClosed() {
         while (port.readable && keepReading) {
@@ -113,6 +121,10 @@
               // value는 Uint8Array이다.
               const str = new TextDecoder().decode(value);
               handleString(str);
+              se_per_sec += str.length;
+              setTimeout(() => {
+                se_per_sec -= str.length;
+              }, 1000);
               console.log(str);
             }
           } catch (error) {
@@ -192,16 +204,15 @@
         while (true) {
           const cmdStarter = await readBytes(1);
           if (cmdStarter[0] != "@") {
-            if(cmdStarter[0] == "\n") {
+            if (cmdStarter[0] == "\n") {
               logs.push(currentLog);
               currentLog = "";
             } else {
               currentLog += cmdStarter[0];
             }
-            document.getElementById("log").innerText = [
-              ...logs,
-              currentLog,
-            ].reverse().join("\n");
+            document.getElementById("log").innerText = [...logs, currentLog]
+              .reverse()
+              .join("\n");
             continue;
           }
           const cmd = await readBytes(1);
@@ -221,7 +232,11 @@
             const rnum = base64ToNumber(r.join(""));
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
-            if(printDrawLog) if(printDrawLog) console.log(`drawRect(x: ${xnum}, y: ${ynum}, w: ${wnum}, h: ${hnum}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              if (printDrawLog)
+                console.log(
+                  `drawRect(x: ${xnum}, y: ${ynum}, w: ${wnum}, h: ${hnum}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+                );
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             ctx.fillRect(xnum, ynum, wnum, hnum);
             continue;
@@ -240,7 +255,10 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
             const radnum = base64ToNumber(rad.join(""));
-            if(printDrawLog) console.log(`drawCircle(x: ${xnum}, y: ${ynum}, rad: ${radnum}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawCircle(x: ${xnum}, y: ${ynum}, rad: ${radnum}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             ctx.beginPath();
             ctx.arc(xnum, ynum, radnum, 0, 2 * Math.PI);
@@ -267,7 +285,10 @@
             const rnum = base64ToNumber(r.join(""));
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
-            if(printDrawLog) console.log(`drawTriangle(x1: ${x1num}, y1: ${y1num}, x2: ${x2num}, y2: ${y2num}, x3: ${x3num}, y3: ${y3num}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawTriangle(x1: ${x1num}, y1: ${y1num}, x2: ${x2num}, y2: ${y2num}, x3: ${x3num}, y3: ${y3num}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             ctx.beginPath();
             ctx.moveTo(x1num, y1num);
@@ -299,7 +320,10 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawTriangleOutline(x1: ${x1num}, y1: ${y1num}, x2: ${x2num}, y2: ${y2num}, x3: ${x3num}, y3: ${y3num}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawTriangleOutline(x1: ${x1num}, y1: ${y1num}, x2: ${x2num}, y2: ${y2num}, x3: ${x3num}, y3: ${y3num}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
 
             ctx.strokeStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             ctx.beginPath();
@@ -315,7 +339,7 @@
             // fill with black
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, 320, 480);
-            if(printDrawLog) console.log("clear");
+            if (printDrawLog) console.log("clear");
             continue;
           }
 
@@ -337,9 +361,14 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
 
-            ctx.font = '26pt Arial';
+            ctx.font = "26pt Arial";
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
@@ -354,7 +383,7 @@
             continue;
           }
 
-          if(cmd == "x") {
+          if (cmd == "x") {
             let x = await readBytes(2);
             let y = await readBytes(2);
             let tlen = await readBytes(2);
@@ -372,7 +401,12 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             /*
             Module.ctx.font = '26pt Arial';
             Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
@@ -380,22 +414,18 @@
             var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
             Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
             */
-           ctx.font = '26pt Arial';
+            ctx.font = "26pt Arial";
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
             var textHeight =
               measure.actualBoundingBoxAscent +
               measure.actualBoundingBoxDescent;
-            ctx.fillText(
-              text.join(""),
-              xnum,
-              ynum + textHeight / 2
-            );
+            ctx.fillText(text.join(""), xnum, ynum + textHeight / 2);
             continue;
           }
 
-          if(cmd == "w" || cmd == "W" || cmd == "e") {
+          if (cmd == "w" || cmd == "W" || cmd == "e") {
             let x = await readBytes(2);
             let y = await readBytes(2);
             let tlen = await readBytes(2);
@@ -413,7 +443,12 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             /*
             Module.ctx.font = '26pt Arial';
             Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
@@ -421,7 +456,7 @@
             var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
             Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
             */
-           ctx.font = '13pt Arial';
+            ctx.font = "13pt Arial";
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
@@ -436,7 +471,7 @@
             continue;
           }
 
-          if(cmd == "E") {
+          if (cmd == "E") {
             let x = await readBytes(2);
             let y = await readBytes(2);
             let tlen = await readBytes(2);
@@ -454,7 +489,12 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             /*
             Module.ctx.font = '26pt Arial';
             Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
@@ -462,22 +502,18 @@
             var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
             Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
             */
-           ctx.font = '13pt Arial';
+            ctx.font = "13pt Arial";
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
             var textHeight =
               measure.actualBoundingBoxAscent +
               measure.actualBoundingBoxDescent;
-            ctx.fillText(
-              text.join(""),
-              xnum,
-              ynum + textHeight / 2
-            );
+            ctx.fillText(text.join(""), xnum, ynum + textHeight / 2);
             continue;
           }
 
-          if(cmd == "r") {
+          if (cmd == "r") {
             let x = await readBytes(2);
             let y = await readBytes(2);
             let tlen = await readBytes(2);
@@ -495,7 +531,12 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             /*
             Module.ctx.font = '26pt Arial';
             Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
@@ -503,22 +544,18 @@
             var textHeight = measure.actualBoundingBoxAscent + measure.actualBoundingBoxDescent;
             Module.ctx.fillText(UTF8ToString($0), $1, $2 + textHeight / 2);
             */
-           ctx.font = '10pt Arial';
+            ctx.font = "10pt Arial";
             ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
             var textHeight =
               measure.actualBoundingBoxAscent +
               measure.actualBoundingBoxDescent;
-            ctx.fillText(
-              text.join(""),
-              xnum,
-              ynum + textHeight / 2
-            );
+            ctx.fillText(text.join(""), xnum, ynum + textHeight / 2);
             continue;
           }
 
-          if(cmd == "v") {
+          if (cmd == "v") {
             let x = await readBytes(2);
             let y = await readBytes(2);
             let tlen = await readBytes(2);
@@ -536,7 +573,12 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             /*
             Module.ctx.font = '26pt Arial';
             var measure = Module.ctx.measureText(UTF8ToString($0));
@@ -549,15 +591,20 @@
             Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2);
             */
-           ctx.font = '13pt Arial';
+            ctx.font = "13pt Arial";
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
             var textHeight =
               measure.actualBoundingBoxAscent +
               measure.actualBoundingBoxDescent;
-              ctx.fillStyle = "black";
-              ctx.fillRect(xnum - textWidth / 2 - 5, ynum - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
-              ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.fillStyle = "black";
+            ctx.fillRect(
+              xnum - textWidth / 2 - 5,
+              ynum - textHeight / 2 - 5,
+              textWidth + 10,
+              textHeight + 10
+            );
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             ctx.fillText(
               text.join(""),
               xnum - textWidth / 2,
@@ -566,7 +613,7 @@
             continue;
           }
 
-          if(cmd == "a") {
+          if (cmd == "a") {
             let x = await readBytes(2);
             let y = await readBytes(2);
             let tlen = await readBytes(2);
@@ -584,7 +631,12 @@
             const gnum = base64ToNumber(g.join(""));
             const bnum = base64ToNumber(b.join(""));
 
-            if(printDrawLog) console.log(`drawText(x: ${xnum}, y: ${ynum}, text: ${text.join("")}, r: ${rnum}, g: ${gnum}, b: ${bnum})`);
+            if (printDrawLog)
+              console.log(
+                `drawText(x: ${xnum}, y: ${ynum}, text: ${text.join(
+                  ""
+                )}, r: ${rnum}, g: ${gnum}, b: ${bnum})`
+              );
             /*
             Module.ctx.font = '26pt Arial';
             var measure = Module.ctx.measureText(UTF8ToString($0));
@@ -597,15 +649,20 @@
             Module.ctx.fillStyle = 'rgb(' + ($3 >> 16) + ',' + (($3 >> 8) & 0xFF) + ',' + ($3 & 0xFF) + ')';
             Module.ctx.fillText(UTF8ToString($0), $1 - textWidth / 2, $2 + textHeight / 2);
             */
-           ctx.font = '13pt Arial';
+            ctx.font = "13pt Arial";
             var measure = ctx.measureText(text.join(""));
             var textWidth = measure.width;
             var textHeight =
               measure.actualBoundingBoxAscent +
               measure.actualBoundingBoxDescent;
-              ctx.fillStyle = "black";
-              ctx.fillRect(xnum - textWidth / 2 - 5, ynum - textHeight / 2 - 5, textWidth + 10, textHeight + 10);
-              ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
+            ctx.fillStyle = "black";
+            ctx.fillRect(
+              xnum - textWidth / 2 - 5,
+              ynum - textHeight / 2 - 5,
+              textWidth + 10,
+              textHeight + 10
+            );
+            ctx.fillStyle = `rgb(${rnum}, ${gnum}, ${bnum})`;
             ctx.fillText(
               text.join(""),
               xnum - textWidth / 2,

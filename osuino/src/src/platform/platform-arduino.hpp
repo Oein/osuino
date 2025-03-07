@@ -119,11 +119,66 @@ IStringType color2string(IColorType color)
 }
 #endif
 
+enum FontSize
+{
+    FT_24,
+    FT_12,
+    FT_Unset,
+};
+
 class CnavasAPI
 {
 public:
+    FontSize lastFont = FontSize::FT_Unset;
+    int lastDatum = -1;
+    bool lastColorTypeHasBG = false;
+    IColorType lastColor = COLOR_BLACK;
+    IColorType lastBG = COLOR_BLACK;
     CnavasAPI()
     {
+    }
+
+    void loadFont(FontSize size)
+    {
+        if (lastFont == size)
+            return;
+        lastFont = size;
+        switch (size)
+        {
+        case FT_24:
+            tft.setFreeFont(FSB24);
+            break;
+        case FT_12:
+            tft.setFreeFont(FSB12);
+            break;
+        default:
+            break;
+        }
+    }
+
+    void setTextDatum(int datum)
+    {
+        if (lastDatum == datum)
+            return;
+        lastDatum = datum;
+        tft.setTextDatum(datum);
+    }
+
+    void setTextColor(IColorType color)
+    {
+        if(!lastColorTypeHasBG && lastColor == color) return;
+        lastColor = color;
+        lastColorTypeHasBG = false;
+        tft.setTextColor(color);
+    }
+
+    void setTextColor(IColorType color, IColorType bg)
+    {
+        if(lastColor == color && lastColorTypeHasBG && lastBG == bg) return;
+        lastColor = color;
+        lastBG = bg;
+        lastColorTypeHasBG = true;
+        tft.setTextColor(color, bg);
     }
 
     void drawRect(int x, int y, int width, int height, IColorType color)
@@ -170,9 +225,9 @@ public:
     {
         // 26pt
         // relative to center
-        tft.setFreeFont(FSB24);
+        this->loadFont(FT_24);
         tft.setTextColor(color);
-        tft.setTextDatum(MC_DATUM);
+        this->setTextDatum(MC_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@q" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));
@@ -193,9 +248,9 @@ public:
     {
         // 26pt
         // relative to top left
-        tft.setFreeFont(FSB24);
-        tft.setTextColor(color);
-        tft.setTextDatum(TL_DATUM);
+        this->loadFont(FT_24);
+        this->setTextColor(color);
+        this->setTextDatum(TL_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@x" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));
@@ -206,9 +261,9 @@ public:
     {
         // 13pt
         // relative to center
-        tft.setFreeFont(FSB12);
-        tft.setTextColor(color);
-        tft.setTextDatum(MC_DATUM);
+        this->loadFont(FT_12);
+        this->setTextColor(color);
+        this->setTextDatum(MC_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@w" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));
@@ -239,9 +294,9 @@ public:
     {
         // 13pt
         // relative to top left
-        tft.setFreeFont(FSB12);
-        tft.setTextColor(color);
-        tft.setTextDatum(TL_DATUM);
+        this->loadFont(FT_12);
+        this->setTextColor(color);
+        this->setTextDatum(TL_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@E" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));
@@ -252,9 +307,9 @@ public:
     {
         // 10pt
         // relative to top left
-        tft.setFreeFont(FSB12);
-        tft.setTextColor(color);
-        tft.setTextDatum(TL_DATUM);
+        this->loadFont(FT_12);
+        this->setTextColor(color);
+        this->setTextDatum(TL_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@r" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));
@@ -265,9 +320,9 @@ public:
     {
         // 13pt
         // relative to center
-        tft.setFreeFont(FSB12);
-        tft.setTextColor(color, COLOR_BLACK);
-        tft.setTextDatum(MC_DATUM);
+        this->loadFont(FT_12);
+        this->setTextColor(color, COLOR_BLACK);
+        this->setTextDatum(MC_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@v" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));
@@ -278,9 +333,9 @@ public:
     {
         // 13pt
         // relative to center
-        tft.setFreeFont(FSB24);
-        tft.setTextColor(color, COLOR_BLACK);
-        tft.setTextDatum(MC_DATUM);
+        this->loadFont(FT_12);
+        this->setTextColor(color, COLOR_BLACK);
+        this->setTextDatum(MC_DATUM);
         tft.drawString(text, x, y);
 #ifdef _SERIAL_DRAW_
         Serial.print("@a" + number2base64(x, 2) + number2base64(y, 2) + number2base64(text.length(), 2) + text + color2string(color));

@@ -52,19 +52,32 @@ public:
     {
         if (requested)
         {
+#ifdef _RENDER_EVERY_FRAME_
             if (timer.deltaTime() > 250)
             {
                 requested = false;
                 targetAcc = 0;
                 return;
             }
+#else
+            requested = false;
+#endif
 
+#ifdef _IS_ARDUINO_
+            if (targetAcc == 0)
+            {
+                api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
+            }
+            else
+                api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, int2string(targetAcc) + "P", COLOR_WHITE);
+#else
             if (targetAcc == 0)
             {
                 api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "BREAK", COLOR_WHITE);
             }
             else
                 api->drawComboText(CANVAS_WIDTH / 2, _ACCURACY_BASE_Y_, "MAX " + int2string(targetAcc) + "%", COLOR_WHITE);
+#endif
         }
     }
 
@@ -459,6 +472,7 @@ public:
     int lastRenderedNEXT_DELTA = 0;
 #endif
     bool nextNoteDeltaShown = false;
+    int drawTextData = 0;
 
     void render()
     {
@@ -521,13 +535,17 @@ public:
         }
 
         // 판정선 그리기
-        api->drawRect(0, _NOTE_END_Y_, CANVAS_WIDTH, 2, COLOR_WHITE);
+        if(drawTextData % 4 == 3) {
+            api->drawRect(0, _NOTE_END_Y_, CANVAS_WIDTH, 2, COLOR_WHITE);
+        }
 
         if (health > 100)
             health = 100;
 
 #ifndef _NO_DIE_
-        api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
+        if(drawTextData % 4 == 3) {
+            api->drawTextTopLeft(5, 5, "Health: " + int2string((int)health), COLOR_WHITE);
+        }
         if (health <= 0)
         {
             currentScene = Scene::Result;
@@ -536,8 +554,12 @@ public:
 
         // combo
 
-        api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
-        api->drawComboNumber(CANVAS_WIDTH / 2, _COMBO_BASE_Y_, int2string(combo), COLOR_WHITE);
+        if(drawTextData % 4 == 3) {
+            api->drawComboText(CANVAS_WIDTH / 2, _COMBO_BASE_Y_ - 26, "COMBO", COLOR_WHITE);
+            api->drawComboNumber(CANVAS_WIDTH / 2, _COMBO_BASE_Y_, int2string(combo), COLOR_WHITE);
+        }
+        drawTextData++;
+        drawTextData %= 4;
 
         accuracyViewer->update();
     }
