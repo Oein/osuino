@@ -1,0 +1,15 @@
+{
+  "name": "djmax2osu",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "osu-classes": "^3.1.0",
+    "osu-parsers": "^4.1.7"
+  }
+}

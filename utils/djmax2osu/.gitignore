@@ -1,0 +1,9 @@
+osz
+osuino
+node_modules
+files
+exports
+cache
+archive
+.conda
+**/.DS_Store
