@@ -1,0 +1,11 @@
+### Footprint positions - created on 2025-03-18T22:00:04+0900 ###
+### Printed by KiCad version 9.0.0
+## Unit = mm, Angle = deg.
+## Side : top
+# Ref     Val                  Package                                                PosX       PosY       Rot  Side
+                                                                                  141.0000   -76.0000    0.0000  top
+D1        LED                  LED_D8.0mm                                         151.4600  -103.0000    0.0000  top
+D2        D_Current-regulator  Converter_DCDC_TRACO_TSR2-24xxN_TSR2-24xxxN_THT    155.0000   -78.9200    0.0000  top
+R1        R                    R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal   149.0000   -94.5000    0.0000  top
+REF**                                                                             141.0000   -73.5000    0.0000  top
+## End
