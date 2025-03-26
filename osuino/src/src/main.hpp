@@ -9,7 +9,7 @@ enum Scene
     Download,
 };
 
-Scene currentScene = Scene::Intro;
+Scene currentScene = Scene::Title;
 
 #include "./lib/libDatastructure.hpp"
 

@@ -29,7 +29,7 @@
 // 퍼펙트 플레이를 달성했을떄의 점수
 #define FULLSCORE 1000000.0
 // 시리얼로 드로잉 API를 호출합니다.
-#define _SERIAL_DRAW_
+#undef _SERIAL_DRAW_
 
 #ifdef _IS_ARDUINO_
 #undef _RENDER_EVERY_FRAME_
